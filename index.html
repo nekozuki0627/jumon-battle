@@ -180,6 +180,8 @@ h1,h2,h3{margin:0}
   text-shadow:0 0 26px rgba(255,90,60,.45);
 }
 .foe-body{min-height:104px;display:flex;flex-direction:column;justify-content:center}
+.opt-row{display:flex;gap:8px;margin-top:6px}
+.opt-row .btn{margin-top:0;flex:1}
 .dots{display:flex;gap:7px;justify-content:center}
 .dots>i{
   width:7px;height:7px;border-radius:50%;background:var(--ember);
@@ -359,19 +361,19 @@ const SPELLS = [
 ];
 
 const ENEMIES = [
-  {name:"泥のスライム王", emoji:"🟢", hp:110, atk:[7,13], spells:[
+  {name:"泥のスライム王", emoji:"🟢", hp:110, atk:[7,13], voice:{pitch:0.85, rate:0.92}, spells:[
     "ねばつく泥よ、絡めとれ",
     "沼の底より、湧き出でよ",
     "ぶくり、ぶくりと沈めてやろう",
     "溶かせ、骨まで溶かせ",
   ]},
-  {name:"石像の番人", emoji:"🗿", hp:190, atk:[11,19], spells:[
+  {name:"石像の番人", emoji:"🗿", hp:190, atk:[11,19], voice:{pitch:0.35, rate:0.72}, spells:[
     "動かざるもの、砕けざるもの",
     "千年の重みを、その身に受けよ",
     "石の理よ、我が拳となれ",
     "この門を通した者は、まだいない",
   ]},
-  {name:"古竜ヴェルグリンド", emoji:"🐉", hp:300, atk:[15,26], spells:[
+  {name:"古竜ヴェルグリンド", emoji:"🐉", hp:300, atk:[15,26], voice:{pitch:0.15, rate:0.78}, spells:[
     "我が喉より溢れよ、滅びの息吹",
     "灰となれ。名も、声も残さず",
     "竜語をもって命ずる ── 燃え尽きろ",
@@ -498,6 +500,48 @@ const $ = id => document.getElementById(id);
 const rnd = (a,b) => a + Math.random()*(b-a);
 const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 
+/* =========================================================
+   敵の読み上げ（ブラウザ内蔵の音声合成）
+   ========================================================= */
+const TTS = ("speechSynthesis" in window);
+let voiceOn = true;
+try{ voiceOn = localStorage.getItem("jumon_voice") !== "off"; }catch(e){}
+
+let jaVoice = null;
+function loadVoice(){
+  if(!TTS) return;
+  const vs = speechSynthesis.getVoices() || [];
+  // 端末によって読み込みが遅れるので、来るたびに拾い直す
+  const ja = vs.filter(v => /^ja([-_]|$)/i.test(v.lang));
+  // 魔物なので男性寄りの声を優先。無い端末（Androidは1種類だけのことが多い）はそのまま
+  jaVoice = ja.find(v => /ichiro|otoya|male|男/i.test(v.name)) || ja[0] || null;
+}
+if(TTS){ loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
+
+function speakFoe(text, profile, onend){
+  if(!TTS || !voiceOn) return false;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP";
+    if(jaVoice) u.voice = jaVoice;
+    u.pitch  = profile ? profile.pitch : 1;
+    u.rate   = profile ? profile.rate  : 1;
+    u.onend   = onend;
+    u.onerror = onend;   // 喋れなかった時も進行は止めない
+    speechSynthesis.speak(u);
+    return true;
+  }catch(e){ return false; }
+}
+function stopSpeech(){ if(TTS){ try{ speechSynthesis.cancel(); }catch(e){} } }
+
+function toggleVoice(){
+  voiceOn = !voiceOn;
+  try{ localStorage.setItem("jumon_voice", voiceOn ? "on" : "off"); }catch(e){}
+  if(!voiceOn) stopSpeech();
+  showPick();
+}
+
 /* ---- 効果音（WebAudioの簡易シンセ） ---- */
 let actx = null;
 function beep(freq, dur, type="triangle", vol=0.14){
@@ -554,7 +598,7 @@ function startGame(mode){
 
 function setEnemy(i){
   const e = ENEMIES[i];
-  G.R = {name:e.name, emoji:e.emoji, hp:e.hp, max:e.hp, atk:e.atk, spells:e.spells};
+  G.R = {name:e.name, emoji:e.emoji, hp:e.hp, max:e.hp, atk:e.atk, spells:e.spells, voice:e.voice};
 }
 
 function paint(){
@@ -598,9 +642,14 @@ function showPick(){
       <div class="sp-read">${s.read}</div>
     </button>`;
   });
-  if(!G.typing && SR){
-    html += `<button class="btn ghost" style="margin-top:6px" onclick="toTyping()">🎤 声が出せない → タイピングモードに切替</button>`;
+  const opts = [];
+  if(TTS && G.mode === "solo"){
+    opts.push(`<button class="btn ghost" onclick="toggleVoice()">${voiceOn ? "🔊 敵の声：ON" : "🔇 敵の声：OFF"}</button>`);
   }
+  if(!G.typing && SR){
+    opts.push(`<button class="btn ghost" onclick="toTyping()">🎤 声が出せない → タイピング</button>`);
+  }
+  if(opts.length) html += `<div class="opt-row">${opts.join("")}</div>`;
   $("stage").innerHTML = html;
   G._cands = cands;
 }
@@ -638,6 +687,7 @@ const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent)
 function chooseSpell(i){
   if(G.busy) return;
   G.busy = true;
+  stopSpeech();   // 敵の声が残っているとマイクがそれを拾ってしまう
   const s = G._cands[i];
   G._spell = s;
   // 想定詠唱秒数（文字数ベース）＋余裕
@@ -889,7 +939,7 @@ function enemyTurn(){
   const sp  = pick(e.spells);
   const crit = Math.random() < 0.18;
   const dmg = Math.round(rnd(e.atk[0], e.atk[1]) * (crit ? 1.6 : 1));
-  let revealed = false, t1 = null, t2 = null;
+  let revealed = false, done = false, t1 = null, t2 = null;
 
   $("stage").innerHTML = `
     <div class="verdict">
@@ -901,6 +951,7 @@ function enemyTurn(){
   const reveal = () => {
     if(revealed) return;
     revealed = true;
+    clearTimeout(t1);
     G.L.hp -= dmg;
     SFX.foe();
     $("foeBody").innerHTML =
@@ -910,20 +961,25 @@ function enemyTurn(){
     paint();
     const el = $("fL");
     el.classList.add("shake"); setTimeout(()=>el.classList.remove("shake"), 420);
+    t2 = setTimeout(advance, 1800);
   };
   const advance = () => {
+    if(done) return;
+    done = true;
     clearTimeout(t1); clearTimeout(t2);
     $("stage").onclick = null;
-    reveal();
+    stopSpeech();
+    reveal();                       // まだ着弾していなければここで着弾させる
     if(G.L.hp <= 0) return gameOver(false, "");
     showPick();
   };
 
-  t1 = setTimeout(reveal, 1150);
-  t2 = setTimeout(advance, 2900);
+  // 読み上げが終わったら着弾。喋れない端末・音量オフでも進むよう保険を置く。
+  const spoke = speakFoe(sp, e.voice, reveal);
+  t1 = setTimeout(reveal, spoke ? Math.min(9000, sp.length * 260 + 2200) : 1150);
   // 「つづける」のクリックはこの直後に親まで上がってくる。ここで即座に
   // スキップ役を仕込むと、その一発で敵の詠唱が飛ばされてしまう。
-  setTimeout(() => { $("stage").onclick = advance; }, 300);
+  setTimeout(() => { if(!done) $("stage").onclick = advance; }, 300);
 }
 
 /* =========================================================
@@ -966,6 +1022,7 @@ function tryPass(){
 })();
 
 function gameOver(win, msg){
+  stopSpeech();
   $("battle").classList.add("hide");
   $("over").classList.remove("hide");
   $("ovEmoji").textContent = win ? "🏆" : "💀";
