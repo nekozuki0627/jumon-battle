@@ -172,6 +172,23 @@ h1,h2,h3{margin:0}
   background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--text);margin-bottom:11px;
 }
 
+/* ---- 敵の詠唱 ---- */
+.foe-chant{
+  font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+  font-size:20px;line-height:1.62;letter-spacing:.04em;
+  color:#ffb8a4;padding:14px 8px 6px;
+  text-shadow:0 0 26px rgba(255,90,60,.45);
+}
+.foe-body{min-height:104px;display:flex;flex-direction:column;justify-content:center}
+.dots{display:flex;gap:7px;justify-content:center}
+.dots>i{
+  width:7px;height:7px;border-radius:50%;background:var(--ember);
+  animation:dots 1.1s ease-in-out infinite;
+}
+.dots>i:nth-child(2){animation-delay:.18s}
+.dots>i:nth-child(3){animation-delay:.36s}
+@keyframes dots{0%,100%{opacity:.22}50%{opacity:1}}
+
 /* ---- 判定結果 ---- */
 .verdict{text-align:center;padding:6px 0 2px}
 .v-title{font-size:27px;font-weight:800;letter-spacing:.12em;margin-bottom:4px}
@@ -342,9 +359,24 @@ const SPELLS = [
 ];
 
 const ENEMIES = [
-  {name:"泥のスライム王", emoji:"🟢", hp:110, atk:[7,13],  cry:"ぶるん、と震えて体当たりしてきた"},
-  {name:"石像の番人",     emoji:"🗿", hp:190, atk:[11,19], cry:"石の拳が振り下ろされた"},
-  {name:"古竜ヴェルグリンド", emoji:"🐉", hp:300, atk:[15,26], cry:"竜の息吹が全てを焼いた"},
+  {name:"泥のスライム王", emoji:"🟢", hp:110, atk:[7,13], spells:[
+    "ねばつく泥よ、絡めとれ",
+    "沼の底より、湧き出でよ",
+    "ぶくり、ぶくりと沈めてやろう",
+    "溶かせ、骨まで溶かせ",
+  ]},
+  {name:"石像の番人", emoji:"🗿", hp:190, atk:[11,19], spells:[
+    "動かざるもの、砕けざるもの",
+    "千年の重みを、その身に受けよ",
+    "石の理よ、我が拳となれ",
+    "この門を通した者は、まだいない",
+  ]},
+  {name:"古竜ヴェルグリンド", emoji:"🐉", hp:300, atk:[15,26], spells:[
+    "我が喉より溢れよ、滅びの息吹",
+    "灰となれ。名も、声も残さず",
+    "竜語をもって命ずる ── 燃え尽きろ",
+    "汝の勇気は讃えよう。灰の中で",
+  ]},
 ];
 
 /* =========================================================
@@ -369,7 +401,8 @@ const KANA_MAP = {
   // 奥義まわり
   "絶対零度":"ぜったいれいど", "爆炎陣":"ばくえんじん", "爆炎":"ばくえん",
   "業火":"ごうか", "豪華":"ごうか", "劫火":"ごうか",
-  "灰燼":"かいじん", "灰塵":"かいじん", "廃人":"はいじん", "会心":"かいしん",
+  "灰燼":"かいじん", "灰塵":"かいじん", "廃人":"はいじん", "怪人":"かいじん", "会心":"かいしん",
+  "2期生":"にきせい", "二期生":"にきせい", "二期":"にき",
   "紅蓮":"ぐれん", "渦巻け":"うずまけ", "渦巻":"うずま",
   "万象":"ばんしょう", "貫く":"つらぬく", "一条":"いちじょう",
   "顕現":"けんげん", "権限":"けんげん",
@@ -521,7 +554,7 @@ function startGame(mode){
 
 function setEnemy(i){
   const e = ENEMIES[i];
-  G.R = {name:e.name, emoji:e.emoji, hp:e.hp, max:e.hp, atk:e.atk, cry:e.cry};
+  G.R = {name:e.name, emoji:e.emoji, hp:e.hp, max:e.hp, atk:e.atk, spells:e.spells};
 }
 
 function paint(){
@@ -547,6 +580,7 @@ const RANK_DMG   = {1:"18", 2:"34", 3:"58"};
 /* ---- 呪文3択 ---- */
 function showPick(){
   G.busy = false;
+  $("stage").onclick = null;
   const who = (G.mode==="duel") ? (G.turn===0 ? G.L.name : G.R.name) : "あなた";
   const cands = [
     pick(SPELLS.filter(s=>s.r===1)),
@@ -573,8 +607,28 @@ function showPick(){
 function toTyping(){ G.typing = true; logLine("⌨️ タイピングモードに切り替えた"); showPick(); }
 
 /* ---- 詠唱画面 ---- */
-let rec = null, tickTimer = null, startedAt = 0, finalText = "", settled = false;
-let forceStop = false, restarts = 0, committedText = "";
+let rec = null, tickTimer = null, startedAt = 0, stoppedAt = 0, settled = false;
+let forceStop = false, restarts = 0;
+
+// 録り直しをまたいだ聞き取り結果。つなげずに「録音ごとの結果」として持つ。
+// Android は録り直すたびに直前のフレーズをもう一度返してくることがあり、
+// 素直につなげると同じ文が積み上がって別物になってしまう。
+// 判定は「各録音の結果」と「全部つなげたもの」の中で一番良かったものを採る。
+let sessionTexts = [], curText = "";
+
+function candidateTexts(){
+  const all = sessionTexts.concat([curText]).filter(t => t && t.trim());
+  if(all.length > 1) all.push(all.join(""));   // 呪文が録音をまたいで分断された場合の保険
+  return all;
+}
+function bestHeard(){
+  let best = "", score = -1;
+  for(const t of candidateTexts()){
+    const s = accuracy(t, G._spell);
+    if(s > score){ score = s; best = t; }
+  }
+  return { text: best, acc: Math.max(score, 0) };
+}
 
 // iOS の Safari は continuous 認識をまともに扱えず、一区切りごとに勝手に終わる。
 // 判定はこちらで区切るので、端末側の都合で切れたら黙って録り直す。
@@ -613,8 +667,9 @@ function chooseSpell(i){
   settled = false;
   forceStop = false;
   restarts = 0;
-  finalText = "";
-  committedText = "";
+  stoppedAt = 0;
+  sessionTexts = [];
+  curText = "";
 
   // タイマーバー
   clearInterval(tickTimer);
@@ -668,11 +723,12 @@ function startListen(){
         interim += r[0].transcript;
       }
     }
-    finalText = committedText + fin;
+    curText = fin;
     const h = $("heard");
-    if(h) h.textContent = finalText + interim;
+    if(h) h.textContent = curText + interim;
     // 十分な精度に達したら即確定（速さが得点になる）
-    if(accuracy(finalText + interim, G._spell) >= 0.92) stopChant();
+    const live = curText + interim;
+    if(Math.max(bestHeard().acc, accuracy(live, G._spell)) >= 0.92) stopChant();
   };
   rec.onerror = ev => {
     if(ev.error === "not-allowed" || ev.error === "service-not-allowed"){
@@ -686,10 +742,11 @@ function startListen(){
   rec.onend = () => {
     if(settled) return;
     const elapsed = (performance.now() - startedAt)/1000;
-    const enough  = accuracy(finalText, G._spell) >= 0.92;
+    const enough  = bestHeard().acc >= 0.92;
     if(!forceStop && !enough && restarts < 5 && elapsed < G._limit - 0.4){
       restarts++;
-      committedText = finalText;   // ここまでを確定させて、次の録音は新しい一覧で受ける
+      sessionTexts.push(curText);  // この録音の分を独立して確保する（つなげない）
+      curText = "";
       try{ rec.start(); return; }catch(e){}
     }
     settle();
@@ -701,6 +758,9 @@ function startListen(){
 function stopChant(){
   if(settled) return;
   forceStop = true;
+  // Android は stop() から実際に終わるまで数秒かかることがある。
+  // 速度点はここで止めた時刻で測らないと、待たされた分だけ損をする。
+  if(!stoppedAt) stoppedAt = performance.now();
   if(rec){ try{ rec.stop(); }catch(e){} }
   else settle();
 }
@@ -714,7 +774,7 @@ function cleanup(){
 function submitTyping(){
   if(settled) return;
   const ti = $("typeInput");
-  finalText = ti ? ti.value : "";
+  curText = ti ? ti.value : "";
   settle();
 }
 
@@ -723,11 +783,12 @@ function submitTyping(){
    ========================================================= */
 function settle(){
   if(settled) return;
-  const elapsed = (performance.now() - startedAt)/1000;
+  const elapsed = ((stoppedAt || performance.now()) - startedAt)/1000;
   cleanup();
 
   const s = G._spell;
-  const acc = accuracy(finalText, s);
+  const heard = bestHeard();
+  const acc = heard.acc;
   const base = {1:18, 2:34, 3:58}[s.r];
 
   // 速度ボーナス：想定より速ければ最大 ×1.35
@@ -766,7 +827,7 @@ function settle(){
     ? `<b>${who}</b> は詠唱に失敗し、反動で <b>${selfDmg}</b> のダメージ`
     : `<b>${who}</b> の「${s.text}」→ <b>${dmg}</b> ダメージ（精度 ${Math.round(acc*100)}%）`);
 
-  const heardShown = finalText.trim() || "（何も聞き取れなかった）";
+  const heardShown = heard.text.trim() || "（何も聞き取れなかった）";
   $("stage").innerHTML = `
     <div class="verdict">
       <div class="v-title ${cls}">${verdict}</div>
@@ -817,16 +878,52 @@ function afterTurn(){
     return showPick();
   }
 
-  // ひとり修行：敵の反撃
-  const dmg = Math.round(rnd(G.R.atk[0], G.R.atk[1]));
-  G.L.hp -= dmg;
-  SFX.foe();
-  logLine(`🔥 ${G.R.cry}。<b>${dmg}</b> のダメージ`);
-  paint();
-  const el = $("fL"); el.classList.add("shake"); setTimeout(()=>el.classList.remove("shake"),420);
+  // ひとり修行：敵も詠唱してくる
+  enemyTurn();
+}
 
-  if(G.L.hp <= 0) return gameOver(false, "");
-  showPick();
+/* ---- 敵の詠唱 ---- */
+function enemyTurn(){
+  G.busy = true;
+  const e   = G.R;
+  const sp  = pick(e.spells);
+  const crit = Math.random() < 0.18;
+  const dmg = Math.round(rnd(e.atk[0], e.atk[1]) * (crit ? 1.6 : 1));
+  let revealed = false, t1 = null, t2 = null;
+
+  $("stage").innerHTML = `
+    <div class="verdict">
+      <div class="chant-label">${e.emoji} ${e.name}の詠唱</div>
+      <div class="foe-chant">${sp}</div>
+      <div class="foe-body" id="foeBody"><span class="dots"><i></i><i></i><i></i></span></div>
+    </div>`;
+
+  const reveal = () => {
+    if(revealed) return;
+    revealed = true;
+    G.L.hp -= dmg;
+    SFX.foe();
+    $("foeBody").innerHTML =
+      `<div class="v-title ${crit ? "v-crit" : "v-fail"}">${crit ? "渾身の一撃" : "直　撃"}</div>
+       <div class="v-dmg ${crit ? "v-crit" : "v-fail"} mono-num">${dmg}</div>`;
+    logLine(`🔥 <b>${e.name}</b> の「${sp}」→ <b>${dmg}</b> のダメージ${crit ? "（渾身の一撃）" : ""}`);
+    paint();
+    const el = $("fL");
+    el.classList.add("shake"); setTimeout(()=>el.classList.remove("shake"), 420);
+  };
+  const advance = () => {
+    clearTimeout(t1); clearTimeout(t2);
+    $("stage").onclick = null;
+    reveal();
+    if(G.L.hp <= 0) return gameOver(false, "");
+    showPick();
+  };
+
+  t1 = setTimeout(reveal, 1150);
+  t2 = setTimeout(advance, 2900);
+  // 「つづける」のクリックはこの直後に親まで上がってくる。ここで即座に
+  // スキップ役を仕込むと、その一発で敵の詠唱が飛ばされてしまう。
+  setTimeout(() => { $("stage").onclick = advance; }, 300);
 }
 
 /* =========================================================
