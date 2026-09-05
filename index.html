@@ -323,7 +323,7 @@ h1,h2,h3{margin:0}
     </button>
     <button class="btn" onclick="craftSetup()">
       呪文づくり
-      <div class="mode-desc">2〜6人。手札で自分だけの呪文を組んで唱え、投票で競う</div>
+      <div class="mode-desc">2〜6人。手札5枚から自分だけの呪文を組んで唱え、投票で競う</div>
     </button>
     <button class="btn" onclick="startGame('duel')">
       ふたり対戦
@@ -334,8 +334,9 @@ h1,h2,h3{margin:0}
 
     <div class="notice">
       <b>遊びかた</b><br>
-      呪文を3つの中から選んで、<b>声に出して唱える</b>。<br>
-      正確さ × 速さでダメージが決まる。噛んだら詠唱失敗、自分にダメージ。<br>
+      どのモードも、やることは<b>呪文を声に出して唱える</b>こと。<br>
+      正確さ × 速さで強さが決まる。噛むと失敗する。<br>
+      <b>呪文づくり</b>は手札5枚から好きな枚数を選んで自分の呪文を組み、みんなの投票で競う。<br>
       <br>
       🎤 マイクの許可を求められたら「許可」を押してね。<br>
       声が出せない場所なら <b>タイピングモード</b> でも遊べるよ。
@@ -1432,7 +1433,7 @@ function craftRound(){
     <div class="verdict">
       <div class="sect-label">第 ${C.round} 幕 ／ 全 ${C.rounds} 幕</div>
       <div class="topic-jp">${C.topic}</div>
-      <div class="topic-note">手札から3枚選んで呪文を組み、声に出して唱えよ</div>
+      <div class="topic-note">手札5枚から好きな枚数を選んで呪文を組み、声に出して唱えよ<br>全部使わなくてもいい</div>
     </div>
     <button class="btn gold" style="margin-top:18px" onclick="craftPass()">はじめる</button>`;
 }
@@ -1450,9 +1451,14 @@ function craftPass(){
 }
 
 function craftHand(){
-  // 呼びかけ・飾り・命令が必ず混ざるように配る
+  // 呼びかけ・飾り・命令が1枚ずつは必ず入るようにして、残り2枚は全体から
   const byKind = k => shuffle(CARDS.filter(c=>c.k===k));
-  C.hand = shuffle([...byKind("呼").slice(0,3), ...byKind("飾").slice(0,2), ...byKind("命").slice(0,3)]);
+  const hand = ["呼","飾","命"].map(k => byKind(k)[0]);
+  for(const c of shuffle(CARDS)){
+    if(hand.length >= 5) break;
+    if(!hand.includes(c)) hand.push(c);
+  }
+  C.hand = shuffle(hand);
   C.chosen = [];
   craftRenderHand();
 }
@@ -1467,8 +1473,8 @@ function craftRenderHand(){
   const power = C.chosen.reduce((s,i)=>s+C.hand[i].p, 0);
   $("stage").innerHTML = `
     <div class="sect-label">${escapeHtml(p.name)}／お題：${C.topic}</div>
-    <div class="craft-line">${line ? line + "！" : "<span style='opacity:.4'>札を選んで呪文を組め</span>"}</div>
-    <div class="craft-meta">${C.chosen.length}/3枚　威力 ${power}</div>
+    <div class="craft-line">${line ? line + "！" : "<span style='opacity:.4'>使いたい札を、唱える順に選べ</span>"}</div>
+    <div class="craft-meta">${C.chosen.length} / ${C.hand.length}枚　威力 ${power}</div>
     <div class="hand">${C.hand.map((c,i)=>{
       const at = C.chosen.indexOf(i);
       return `<button class="wcard ${at>=0?'picked':''}" onclick="craftPick(${i})">
@@ -1479,18 +1485,18 @@ function craftRenderHand(){
       </button>`;}).join("")}</div>
     <div class="opt-row">
       <button class="btn ghost" onclick="C.chosen=[];craftRenderHand()">選び直す</button>
-      <button class="btn gold" ${C.chosen.length===3?"":"disabled"} onclick="craftChant()">唱える</button>
+      <button class="btn gold" ${C.chosen.length?"":"disabled"} onclick="craftChant()">唱える</button>
     </div>`;
 }
 function craftPick(i){
   const at = C.chosen.indexOf(i);
   if(at >= 0) C.chosen.splice(at, 1);
-  else if(C.chosen.length < 3) C.chosen.push(i);
+  else if(C.chosen.length < C.hand.length) C.chosen.push(i);
   craftRenderHand();
 }
 
 function craftChant(){
-  if(C.chosen.length !== 3) return;
+  if(!C.chosen.length) return;
   const cards = C.chosen.map(i=>C.hand[i]);
   const spell = {
     text: cards.map(c=>c.t).join("、") + "！",
