@@ -1425,7 +1425,12 @@ function tryPass(){
    手札から3枚選んで自分だけの呪文を組み、声に出して唱え、
    最後にみんなで投票する。
    ========================================================= */
-const C = { players:[], round:0, rounds:3, topic:"", turn:0, entries:[], voter:0, hand:[], chosen:[] };
+const C = { players:[], round:0, rounds:3, topic:"", turn:0, entries:[], voter:0, hand:[], chosen:[], draws:0 };
+
+// 引き直しは3回まで。粘るほど呪文の威力が落ちる
+const MAX_DRAWS = 3;
+const DRAW_MULT = [1, 0.8, 0.6, 0.4];
+const curMult = () => DRAW_MULT[Math.min(C.draws, MAX_DRAWS)];
 
 function craftSetup(){
   $("title").classList.add("hide");
@@ -1499,7 +1504,7 @@ function craftHand(){
   C.hand = shuffle(C.hand);
   C.discard = [];
   C.chosen  = [];
-  C.drawn   = false;
+  C.draws   = 0;
   craftRenderDraw();
 }
 function shuffle(a){
@@ -1514,7 +1519,11 @@ function craftRenderDraw(){
   const n = C.discard.length;
   $("stage").innerHTML = `
     <div class="sect-label">${escapeHtml(p.name)}／お題：${C.topic}</div>
-    <div class="draw-note">いらない札を選んで引き直せる。<b>引き直しは1回だけ</b>。</div>
+    <div class="draw-note">
+      いらない札を選んで引き直せる。<b>あと ${MAX_DRAWS - C.draws} 回</b>。<br>
+      いまの威力は <b>×${curMult().toFixed(1)}</b>${C.draws < MAX_DRAWS
+        ? `　／　引き直すと <b>×${DRAW_MULT[C.draws+1].toFixed(1)}</b> に落ちる` : ""}
+    </div>
     <div class="hand">${C.hand.map((c,i)=>{
       const off = C.discard.includes(i);
       return `<button class="wcard ${off?'tossed':''}" onclick="craftToss(${i})">
@@ -1524,7 +1533,7 @@ function craftRenderDraw(){
       </button>`;}).join("")}</div>
     <div class="opt-row">
       <button class="btn ghost" onclick="craftKeepAll()">このまま組む</button>
-      <button class="btn gold" ${n?"":"disabled"} onclick="craftRedraw()">${n}枚 引き直す</button>
+      <button class="btn gold" ${n?"":"disabled"} onclick="craftRedraw()">${n}枚 引き直す（×${DRAW_MULT[C.draws+1].toFixed(1)}）</button>
     </div>`;
 }
 function craftToss(i){
@@ -1532,15 +1541,16 @@ function craftToss(i){
   if(at >= 0) C.discard.splice(at, 1); else C.discard.push(i);
   craftRenderDraw();
 }
-function craftKeepAll(){ C.discard = []; C.drawn = true; craftRenderHand(); }
+function craftKeepAll(){ C.discard = []; craftRenderHand(); }
 function craftRedraw(){
   const keep = C.hand.filter((_,i)=>!C.discard.includes(i));
   const need = C.hand.length - keep.length;
   C.hand = shuffle([...keep, ...C.deck.splice(0, need)]);
   C.discard = [];
-  C.drawn = true;
+  C.draws++;
   beep(620,.09); setTimeout(()=>beep(880,.14),70);
-  craftRenderHand();
+  if(C.draws >= MAX_DRAWS) return craftRenderHand();   // 打ち止め
+  craftRenderDraw();
 }
 
 function craftRenderHand(){
@@ -1550,7 +1560,7 @@ function craftRenderHand(){
   $("stage").innerHTML = `
     <div class="sect-label">${escapeHtml(p.name)}／お題：${C.topic}</div>
     <div class="craft-line">${line ? line + "！" : "<span style='opacity:.4'>使いたい札を、唱える順に選べ</span>"}</div>
-    <div class="craft-meta">${C.chosen.length} / ${C.hand.length}枚　威力 ${power}</div>
+    <div class="craft-meta">${C.chosen.length} / ${C.hand.length}枚　威力 ${power*3}${C.draws ? ` × ${curMult().toFixed(1)} = <b style="color:var(--gold)">${Math.round(power*3*curMult())}</b>` : ` <b style="color:var(--gold)">点</b>`}</div>
     <div class="hand">${C.hand.map((c,i)=>{
       const at = C.chosen.indexOf(i);
       return `<button class="wcard ${at>=0?'picked':''}" onclick="craftPick(${i})">
@@ -1580,23 +1590,28 @@ function craftChant(){
     alt: [],
   };
   const power = cards.reduce((s,c)=>s+c.p, 0);
-  G.chantDone = res => craftAfterChant(res, spell, power);
+  const mult  = curMult();
+  G.chantDone = res => craftAfterChant(res, spell, power, mult, C.draws);
   startChant(spell);
 }
 
-function craftAfterChant(res, spell, power){
+function craftAfterChant(res, spell, power, mult, draws){
   const acc = res.acc;
   const chant = acc >= 0.92 ? 30 : acc >= 0.75 ? 20 : acc >= 0.5 ? 10 : 0;
   const label = acc >= 0.92 ? "完璧な詠唱" : acc >= 0.75 ? "よい詠唱" : acc >= 0.5 ? "たどたどしい詠唱" : "噛んだ";
   const cls   = acc >= 0.92 ? "v-crit" : acc >= 0.75 ? "v-ok" : acc >= 0.5 ? "v-weak" : "v-fail";
-  C.entries.push({ pi:C.turn, text:spell.text, chant, power, votes:0 });
+  const pts = Math.round(power * 3 * mult);
+  C.entries.push({ pi:C.turn, text:spell.text, chant, power, mult, draws, pts, votes:0 });
 
   $("stage").innerHTML = `
     <div class="verdict">
       <div class="v-title ${cls}">${label}</div>
       <div class="craft-line" style="margin:10px 0">${spell.text}</div>
       <div class="acc-row"><span>詠唱</span><span style="flex:1"></span><span class="mono-num">${chant} 点（精度 ${Math.round(acc*100)}%）</span></div>
-      <div class="acc-row"><span>呪文の威力</span><span style="flex:1"></span><span class="mono-num">${power*3} 点</span></div>
+      <div class="acc-row"><span>呪文の威力</span><span style="flex:1"></span>
+        <span class="mono-num">${draws ? `${power*3} × ${mult.toFixed(1)} = ${pts}` : pts} 点</span></div>
+      ${draws ? `<div class="acc-row"><span>引き直し ${draws} 回ぶん減衰</span><span style="flex:1"></span>
+        <span class="mono-num">−${power*3 - pts}</span></div>` : ""}
       <div class="v-heard">聞こえた言葉：<b>${escapeHtml(res.heard.trim() || "（聞き取れなかった）")}</b></div>
     </div>
     <button class="btn gold" style="margin-top:16px" onclick="craftNextTurn()">つぎの人へ</button>`;
@@ -1641,7 +1656,7 @@ function craftCastVote(i){
 
 function craftRoundResult(){
   C.entries.forEach(e=>{
-    e.total = e.chant + e.power*3 + e.votes*25;
+    e.total = e.chant + e.pts + e.votes*25;
     C.players[e.pi].score += e.total;
   });
   const ranked = C.entries.slice().sort((a,b)=>b.total-a.total);
@@ -1654,7 +1669,7 @@ function craftRoundResult(){
           <span class="res-total mono-num">${e.total}</span>
         </div>
         <div class="res-spell">${e.text}</div>
-        <div class="res-break">詠唱 ${e.chant}　威力 ${e.power*3}　票 ${e.votes} × 25</div>
+        <div class="res-break">詠唱 ${e.chant}　威力 ${e.pts}${e.draws?`（引き直し${e.draws}回 ×${e.mult.toFixed(1)}）`:""}　票 ${e.votes} × 25</div>
       </div>`).join("")}
     <button class="btn gold" style="margin-top:14px" onclick="${C.round < C.rounds ? "craftRound()" : "craftFinal()"}">
       ${C.round < C.rounds ? "つぎの幕へ" : "総合結果"}</button>`;
