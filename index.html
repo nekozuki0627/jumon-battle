@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<title>呪文詠唱バトル</title>
+<style>
+:root{
+  --bg:#0b0918;
+  --bg2:#161033;
+  --panel:rgba(32,25,64,.78);
+  --line:rgba(232,196,106,.28);
+  --gold:#e8c46a;
+  --gold-dim:#9c8446;
+  --violet:#9b7cf5;
+  --ember:#ff7a52;
+  --ice:#6ec9f0;
+  --ok:#7ee0a0;
+  --ng:#ff5a7a;
+  --text:#eae6f7;
+  --text-dim:#a49dc4;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  min-height:100dvh;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -10%, #3a2a70 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, #4a2350 0%, transparent 60%),
+    linear-gradient(180deg,var(--bg) 0%, var(--bg2) 100%);
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic",Meiryo,system-ui,sans-serif;
+  display:flex;justify-content:center;
+  padding:16px 14px 40px;
+}
+.wrap{width:100%;max-width:640px}
+
+/* ---- 共通パーツ ---- */
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;
+  backdrop-filter:blur(6px);
+  box-shadow:0 12px 40px rgba(0,0,0,.45);
+}
+.btn{
+  display:block;width:100%;
+  padding:15px 18px;
+  border-radius:11px;
+  border:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(155,124,245,.28),rgba(80,55,160,.30));
+  color:var(--text);
+  font-size:16px;font-weight:700;
+  font-family:inherit;
+  cursor:pointer;
+  transition:transform .08s ease, filter .15s ease;
+}
+.btn:hover{filter:brightness(1.18)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:default;filter:none;transform:none}
+.btn.gold{
+  background:linear-gradient(180deg,rgba(232,196,106,.9),rgba(180,140,60,.85));
+  color:#2a1f06;border-color:rgba(255,230,160,.6);
+}
+.btn.ghost{background:rgba(255,255,255,.05);font-weight:600;font-size:14px;padding:11px}
+.btn+.btn{margin-top:10px}
+h1,h2,h3{margin:0}
+.mono-num{font-variant-numeric:tabular-nums}
+.hide{display:none !important}
+
+/* ---- タイトル ---- */
+#title{text-align:center;padding-top:6vh}
+.crest{font-size:52px;line-height:1;filter:drop-shadow(0 0 18px rgba(232,196,106,.55))}
+.title-jp{
+  font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+  font-size:34px;font-weight:700;letter-spacing:.18em;
+  margin:14px 0 6px;
+  background:linear-gradient(180deg,#fff5d6,#e8c46a 55%,#a5813a);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.title-sub{color:var(--text-dim);font-size:12.5px;letter-spacing:.32em;margin-bottom:26px}
+.mode-desc{font-size:12px;color:var(--text-dim);font-weight:500;margin-top:4px;letter-spacing:.02em}
+.btn.gold .mode-desc{color:rgba(42,31,6,.72)}
+.notice{
+  margin-top:18px;font-size:12px;line-height:1.75;color:var(--text-dim);
+  border-top:1px solid rgba(255,255,255,.08);padding-top:14px;text-align:left;
+}
+.notice b{color:var(--gold)}
+#micWarn{
+  margin-top:14px;padding:11px 13px;border-radius:10px;
+  background:rgba(255,90,122,.12);border:1px solid rgba(255,90,122,.4);
+  font-size:12.5px;line-height:1.7;text-align:left;
+}
+
+/* ---- HPバー ---- */
+.fighters{display:flex;gap:10px;align-items:stretch;margin-bottom:12px}
+.fighter{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.fighter.active{border-color:var(--gold);box-shadow:0 0 0 1px rgba(232,196,106,.35),0 0 22px rgba(232,196,106,.18)}
+.f-top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.f-name{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.f-hp{font-size:12px;color:var(--text-dim);white-space:nowrap}
+.bar{height:8px;border-radius:4px;background:rgba(0,0,0,.42);overflow:hidden;margin-top:7px}
+.bar>i{display:block;height:100%;border-radius:4px;transition:width .45s cubic-bezier(.2,.9,.3,1)}
+.hp-me>i{background:linear-gradient(90deg,#4fd18b,#7ee0a0)}
+.hp-foe>i{background:linear-gradient(90deg,#c0392b,#ff7a52)}
+.f-emoji{font-size:22px;line-height:1}
+
+/* ---- 呪文選択 ---- */
+.sect-label{font-size:11.5px;letter-spacing:.22em;color:var(--gold-dim);font-weight:700;margin:0 0 9px 2px}
+.spell-pick{
+  width:100%;text-align:left;padding:13px 15px;margin-bottom:9px;
+  border-radius:11px;border:1px solid var(--line);
+  background:linear-gradient(135deg,rgba(155,124,245,.16),rgba(40,28,90,.5));
+  color:var(--text);font-family:inherit;cursor:pointer;
+  transition:transform .08s, border-color .15s, filter .15s;
+}
+.spell-pick:hover{border-color:var(--gold);filter:brightness(1.12)}
+.spell-pick:active{transform:translateY(1px)}
+.sp-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px}
+.sp-rank{font-size:10.5px;letter-spacing:.14em;font-weight:800;padding:2.5px 8px;border-radius:99px}
+.r1{background:rgba(110,201,240,.18);color:var(--ice);border:1px solid rgba(110,201,240,.4)}
+.r2{background:rgba(155,124,245,.2);color:#b9a3ff;border:1px solid rgba(155,124,245,.45)}
+.r3{background:rgba(255,122,82,.18);color:var(--ember);border:1px solid rgba(255,122,82,.45)}
+.sp-dmg{font-size:11.5px;color:var(--text-dim)}
+.sp-text{
+  font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+  font-size:16px;line-height:1.5;letter-spacing:.03em;
+}
+
+/* ---- 詠唱 ---- */
+#chantBox{text-align:center}
+.chant-label{font-size:11.5px;letter-spacing:.22em;color:var(--gold-dim);font-weight:700;margin-bottom:12px}
+.chant-text{
+  font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+  font-size:23px;line-height:1.62;letter-spacing:.04em;
+  padding:16px 8px;
+  text-shadow:0 0 26px rgba(232,196,106,.4);
+}
+.timer{height:5px;border-radius:3px;background:rgba(0,0,0,.4);overflow:hidden;margin:4px 0 16px}
+.timer>i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--ember));width:100%}
+.mic-orb{
+  width:96px;height:96px;border-radius:50%;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;font-size:38px;
+  background:radial-gradient(circle at 50% 35%,rgba(155,124,245,.5),rgba(50,30,120,.6));
+  border:1px solid var(--line);
+}
+.mic-orb.listening{animation:pulse 1.15s ease-in-out infinite;border-color:var(--gold)}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(232,196,106,.45);transform:scale(1)}
+  50%{box-shadow:0 0 0 18px rgba(232,196,106,0);transform:scale(1.05)}
+}
+.heard{
+  min-height:44px;font-size:15px;line-height:1.6;color:var(--ice);
+  padding:11px;border-radius:9px;background:rgba(0,0,0,.28);
+  border:1px dashed rgba(110,201,240,.3);margin-bottom:14px;word-break:break-all;
+}
+.heard:empty::before{content:"…";color:var(--text-dim)}
+#typeInput{
+  width:100%;padding:13px;border-radius:10px;font-size:16px;font-family:inherit;
+  background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--text);margin-bottom:11px;
+}
+
+/* ---- 判定結果 ---- */
+.verdict{text-align:center;padding:6px 0 2px}
+.v-title{font-size:27px;font-weight:800;letter-spacing:.12em;margin-bottom:4px}
+.v-crit{color:var(--gold);text-shadow:0 0 24px rgba(232,196,106,.7)}
+.v-ok{color:var(--ok)}
+.v-weak{color:var(--ice)}
+.v-fail{color:var(--ng)}
+.v-dmg{font-size:44px;font-weight:900;line-height:1.1;margin:2px 0 10px}
+.acc-row{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text-dim);margin-bottom:6px}
+.acc-bar{flex:1;height:7px;border-radius:4px;background:rgba(0,0,0,.42);overflow:hidden}
+.acc-bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--ember),var(--gold),var(--ok));transition:width .6s ease}
+.v-heard{font-size:12.5px;color:var(--text-dim);margin-top:10px;line-height:1.7;text-align:left}
+.v-heard b{color:var(--ice);font-weight:600}
+
+/* ---- ログ ---- */
+#log{margin-top:12px;font-size:12.5px;line-height:1.85;color:var(--text-dim);max-height:132px;overflow-y:auto}
+#log div{padding:1px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+#log b{color:var(--text)}
+
+/* ---- 結果画面 ---- */
+#over{text-align:center;padding-top:5vh}
+.over-emoji{font-size:64px;line-height:1;margin-bottom:12px}
+.over-title{font-family:"Yu Mincho",serif;font-size:30px;letter-spacing:.14em;margin-bottom:8px}
+.over-sub{color:var(--text-dim);font-size:13.5px;line-height:1.8;margin-bottom:22px}
+.stats{display:flex;gap:8px;margin-bottom:22px}
+.stat{flex:1;background:rgba(0,0,0,.26);border:1px solid var(--line);border-radius:10px;padding:11px 6px}
+.stat-v{font-size:21px;font-weight:800;color:var(--gold)}
+.stat-l{font-size:10.5px;color:var(--text-dim);letter-spacing:.06em;margin-top:2px}
+
+.shake{animation:shake .4s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-9px)}40%{transform:translateX(8px)}
+  60%{transform:translateX(-5px)}80%{transform:translateX(4px)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ 合言葉ゲート ============ -->
+<section id="gate">
+  <div style="text-align:center;padding-top:12vh">
+    <div class="crest">🗝️</div>
+    <h1 class="title-jp" style="font-size:27px">封 印 の 扉</h1>
+    <div class="title-sub">合言葉を告げよ</div>
+    <div class="card">
+      <input id="passIn" type="text" placeholder="あいことば" autocomplete="off"
+             autocapitalize="off" autocorrect="off" spellcheck="false"
+             style="width:100%;padding:14px;border-radius:10px;font-size:16px;font-family:inherit;
+                    text-align:center;letter-spacing:.12em;
+                    background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--text);margin-bottom:11px">
+      <button class="btn gold" onclick="tryPass()">扉 を 開 く</button>
+      <div id="passMsg" style="font-size:12.5px;color:var(--ng);min-height:20px;margin-top:10px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ タイトル ============ -->
+<section id="title" class="hide">
+  <div class="crest">🔮</div>
+  <h1 class="title-jp">呪文詠唱バトル</h1>
+  <div class="title-sub">SPELL CHANT BATTLE</div>
+
+  <div class="card">
+    <button class="btn gold" onclick="startGame('solo')">
+      ひとり修行
+      <div class="mode-desc">魔物3体と連戦。ギルドの試練に挑む</div>
+    </button>
+    <button class="btn" onclick="startGame('duel')">
+      ふたり対戦
+      <div class="mode-desc">1台を交代で回す。先に相手のHPを削れ</div>
+    </button>
+
+    <div id="micWarn" class="hide"></div>
+
+    <div class="notice">
+      <b>遊びかた</b><br>
+      呪文を3つの中から選んで、<b>声に出して唱える</b>。<br>
+      正確さ × 速さでダメージが決まる。噛んだら詠唱失敗、自分にダメージ。<br>
+      <br>
+      🎤 マイクの許可を求められたら「許可」を押してね。<br>
+      声が出せない場所なら <b>タイピングモード</b> でも遊べるよ。
+    </div>
+  </div>
+</section>
+
+<!-- ============ バトル ============ -->
+<section id="battle" class="hide">
+  <div class="fighters">
+    <div class="fighter" id="fL">
+      <div class="f-top"><span class="f-emoji" id="eL">🧙</span><span class="f-hp"><span id="hpLv">100</span>/<span id="hpLm">100</span></span></div>
+      <div class="f-name" id="nL">あなた</div>
+      <div class="bar hp-me"><i id="barL" style="width:100%"></i></div>
+    </div>
+    <div class="fighter" id="fR">
+      <div class="f-top"><span class="f-emoji" id="eR">🐉</span><span class="f-hp"><span id="hpRv">100</span>/<span id="hpRm">100</span></span></div>
+      <div class="f-name" id="nR">敵</div>
+      <div class="bar hp-foe"><i id="barR" style="width:100%"></i></div>
+    </div>
+  </div>
+
+  <div class="card" id="stage"></div>
+
+  <div id="log"></div>
+</section>
+
+<!-- ============ 結果 ============ -->
+<section id="over" class="hide">
+  <div class="over-emoji" id="ovEmoji">🏆</div>
+  <div class="over-title" id="ovTitle"></div>
+  <div class="over-sub" id="ovSub"></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-v mono-num" id="stTurns">0</div><div class="stat-l">詠唱回数</div></div>
+    <div class="stat"><div class="stat-v mono-num" id="stAcc">0%</div><div class="stat-l">平均精度</div></div>
+    <div class="stat"><div class="stat-v mono-num" id="stCrit">0</div><div class="stat-l">会心の詠唱</div></div>
+  </div>
+  <div class="card">
+    <button class="btn gold" onclick="location.reload()">もう一度</button>
+  </div>
+</section>
+
+</div>
+<script>
+"use strict";
+
+/* =========================================================
+   呪文データ
+   text : 画面に出す表記（＝音声認識が返しやすい標準的な漢字かな）
+   yomi : ひらがな読み（認識がかな寄りで返ってきた時の保険）
+   alt  : 表記ゆれの許容候補
+   ========================================================= */
+const SPELLS = [
+  // ---- 階位1：基礎呪文 ----
+  {r:1, text:"火よ、灯れ",            yomi:"ひよともれ",              alt:[]},
+  {r:1, text:"氷の刃よ",              yomi:"こおりのやいばよ",        alt:["氷の刃"]},
+  {r:1, text:"風よ、吹き荒れろ",      yomi:"かぜよふきあれろ",        alt:[]},
+  {r:1, text:"光あれ",                yomi:"ひかりあれ",              alt:[]},
+  {r:1, text:"石の壁よ、我を守れ",    yomi:"いしのかべよわれをまもれ",alt:["石の壁よ私を守れ"]},
+  {r:1, text:"雷よ、落ちろ",          yomi:"かみなりよおちろ",        alt:[]},
+  {r:1, text:"闇よ、飲み込め",        yomi:"やみよのみこめ",          alt:[]},
+  {r:1, text:"炎の矢を放て",          yomi:"ほのおのやをはなて",      alt:[]},
+
+  // ---- 階位2：中級呪文 ----
+  {r:2, text:"紅蓮の炎よ、我が敵を焼き払え",   yomi:"ぐれんのほのおよわがてきをやきはらえ",   alt:["紅蓮の炎よ我が敵を焼き払え"]},
+  {r:2, text:"凍てつく吹雪よ、全てを閉ざせ",   yomi:"いてつくふぶきよすべてをとざせ",         alt:["凍てつく吹雪よ全てを閉ざせ"]},
+  {r:2, text:"疾風の刃よ、駆け抜けろ",         yomi:"はやてのやいばよかけぬけろ",             alt:["疾風の刃よ駆け抜けろ"]},
+  {r:2, text:"雷鳴轟け、天よ裂けろ",           yomi:"らいめいとどろけてんよさけろ",           alt:["雷鳴とどろけ天よ裂けろ"]},
+  {r:2, text:"深淵の闇よ、我に力を貸せ",       yomi:"しんえんのやみよわれにちからをかせ",     alt:["深淵の闇よ私に力を貸せ"]},
+  {r:2, text:"聖なる光よ、傷を癒せ",           yomi:"せいなるひかりよきずをいやせ",           alt:[]},
+  {r:2, text:"大地よ震えろ、敵を砕け",         yomi:"だいちよふるえろてきをくだけ",           alt:[]},
+  {r:2, text:"星屑の雨よ、降り注げ",           yomi:"ほしくずのあめよふりそそげ",             alt:[]},
+
+  // ---- 階位3：奥義 ----
+  {r:3, text:"万象を貫く一条の光よ、我が意志のもとに顕現せよ",
+        yomi:"ばんしょうをつらぬくいちじょうのひかりよわがいしのもとにけんげんせよ", alt:[]},
+  {r:3, text:"業火よ渦巻け、灰燼に帰せ、紅蓮爆炎陣",
+        yomi:"ごうかようずまけかいじんにきせぐれんばくえんじん", alt:["業火よ渦巻け灰塵に帰せ紅蓮爆炎陣"]},
+  {r:3, text:"七つの星が巡る時、封印されし竜よ目覚めよ",
+        yomi:"ななつのほしがめぐるときふういんされしりゅうよめざめよ", alt:[]},
+  {r:3, text:"凍える静寂よ、時さえ止めて、絶対零度の牢獄へ",
+        yomi:"こごえるせいじゃくよときさえとめてぜったいれいどのろうごくへ", alt:[]},
+  {r:3, text:"大地の脈動よ、我が声に応え、天を穿つ槍となれ",
+        yomi:"だいちのみゃくどうよわがこえにこたえてんをうがつやりとなれ", alt:[]},
+  {r:3, text:"闇より出でし者よ、汝の名において、全てを無に還せ",
+        yomi:"やみよりいでしものよなんじのなにおいてすべてをむにかえせ", alt:[]},
+];
+
+const ENEMIES = [
+  {name:"泥のスライム王", emoji:"🟢", hp:110, atk:[7,13],  cry:"ぶるん、と震えて体当たりしてきた"},
+  {name:"石像の番人",     emoji:"🗿", hp:190, atk:[11,19], cry:"石の拳が振り下ろされた"},
+  {name:"古竜ヴェルグリンド", emoji:"🐉", hp:300, atk:[15,26], cry:"竜の息吹が全てを焼いた"},
+];
+
+/* =========================================================
+   文字列の正規化と類似度
+   ========================================================= */
+function norm(s){
+  if(!s) return "";
+  return s
+    .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)) // カタカナ→ひらがな
+    .replace(/[、。！？!?・「」『』…,.\sー　]/g, "")                        // 記号・空白・長音を除去
+    .toLowerCase();
+}
+function lev(a,b){
+  const m=a.length, n=b.length;
+  if(!m) return n; if(!n) return m;
+  let prev = new Array(n+1);
+  for(let j=0;j<=n;j++) prev[j]=j;
+  for(let i=1;i<=m;i++){
+    const cur=[i];
+    for(let j=1;j<=n;j++){
+      cur[j] = Math.min(prev[j]+1, cur[j-1]+1, prev[j-1] + (a[i-1]===b[j-1]?0:1));
+    }
+    prev=cur;
+  }
+  return prev[n];
+}
+function simOne(a,b){
+  a=norm(a); b=norm(b);
+  if(!a || !b) return 0;
+  return 1 - lev(a,b)/Math.max(a.length,b.length);
+}
+// 表記・読み・ゆれ候補のうち一番マシなスコアを採用
+function accuracy(heard, spell){
+  const cands = [spell.text, spell.yomi, ...(spell.alt||[])];
+  return cands.reduce((best,c)=>Math.max(best, simOne(heard,c)), 0);
+}
+
+/* =========================================================
+   ゲーム状態
+   ========================================================= */
+const G = {
+  mode:"solo",
+  turn:0,            // 0 = 左（プレイヤー1）, 1 = 右
+  stage:0,
+  L:{name:"あなた", emoji:"🧙", hp:100, max:100},
+  R:{name:"", emoji:"", hp:0, max:0},
+  typing:false,
+  busy:false,
+  stats:{turns:0, accSum:0, crit:0},
+};
+
+const $ = id => document.getElementById(id);
+const rnd = (a,b) => a + Math.random()*(b-a);
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+/* ---- 効果音（WebAudioの簡易シンセ） ---- */
+let actx = null;
+function beep(freq, dur, type="triangle", vol=0.14){
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0008, actx.currentTime + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur);
+  }catch(e){}
+}
+const SFX = {
+  crit(){ beep(880,.1); setTimeout(()=>beep(1320,.28,"sawtooth",.16),80); },
+  hit(){  beep(420,.16,"square",.11); },
+  weak(){ beep(260,.14,"sine",.1); },
+  fail(){ beep(160,.4,"sawtooth",.13); },
+  foe(){  beep(120,.3,"square",.1); },
+};
+
+/* =========================================================
+   音声認識の可否チェック
+   ========================================================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(!SR){
+  G.typing = true;
+  const w = $("micWarn");
+  w.classList.remove("hide");
+  w.innerHTML = "⚠️ このブラウザは音声認識に対応してないみたい。<b>タイピングモード</b>で起動するよ。<br>声で遊ぶなら PC の Chrome / Edge、Android の Chrome で開いてね。";
+}
+
+/* =========================================================
+   進行
+   ========================================================= */
+function startGame(mode){
+  G.mode = mode;
+  G.stats = {turns:0, accSum:0, crit:0};
+  G.stage = 0;
+  G.L = {name: mode==="duel" ? "術士 1" : "あなた", emoji:"🧙", hp:100, max:100};
+  if(mode==="duel"){
+    G.R = {name:"術士 2", emoji:"🧝", hp:100, max:100};
+  }else{
+    setEnemy(0);
+  }
+  G.turn = 0;
+  $("title").classList.add("hide");
+  $("battle").classList.remove("hide");
+  $("log").innerHTML = "";
+  logLine(mode==="duel" ? "⚔️ 詠唱決闘、開始！" : `⚔️ 第1の試練 ── ${G.R.name} が現れた！`);
+  paint();
+  showPick();
+}
+
+function setEnemy(i){
+  const e = ENEMIES[i];
+  G.R = {name:e.name, emoji:e.emoji, hp:e.hp, max:e.hp, atk:e.atk, cry:e.cry};
+}
+
+function paint(){
+  $("nL").textContent = G.L.name; $("eL").textContent = G.L.emoji;
+  $("nR").textContent = G.R.name; $("eR").textContent = G.R.emoji;
+  $("hpLv").textContent = Math.max(0,Math.round(G.L.hp)); $("hpLm").textContent = G.L.max;
+  $("hpRv").textContent = Math.max(0,Math.round(G.R.hp)); $("hpRm").textContent = G.R.max;
+  $("barL").style.width = Math.max(0, G.L.hp/G.L.max*100) + "%";
+  $("barR").style.width = Math.max(0, G.R.hp/G.R.max*100) + "%";
+  $("fL").classList.toggle("active", G.turn===0);
+  $("fR").classList.toggle("active", G.mode==="duel" && G.turn===1);
+}
+
+function logLine(html){
+  const d = document.createElement("div");
+  d.innerHTML = html;
+  $("log").prepend(d);
+}
+
+const RANK_LABEL = {1:"階位 Ⅰ", 2:"階位 Ⅱ", 3:"奥　義"};
+const RANK_DMG   = {1:"18", 2:"34", 3:"58"};
+
+/* ---- 呪文3択 ---- */
+function showPick(){
+  G.busy = false;
+  const who = (G.mode==="duel") ? (G.turn===0 ? G.L.name : G.R.name) : "あなた";
+  const cands = [
+    pick(SPELLS.filter(s=>s.r===1)),
+    pick(SPELLS.filter(s=>s.r===2)),
+    pick(SPELLS.filter(s=>s.r===3)),
+  ];
+  let html = `<div class="sect-label">${who}の手番 ── 唱える呪文を選べ</div>`;
+  cands.forEach((s,i)=>{
+    html += `<button class="spell-pick" onclick="chooseSpell(${i})">
+      <div class="sp-head">
+        <span class="sp-rank r${s.r}">${RANK_LABEL[s.r]}</span>
+        <span class="sp-dmg">最大 ${RANK_DMG[s.r]} ダメージ</span>
+      </div>
+      <div class="sp-text">${s.text}</div>
+    </button>`;
+  });
+  if(!G.typing && SR){
+    html += `<button class="btn ghost" style="margin-top:6px" onclick="toTyping()">🎤 声が出せない → タイピングモードに切替</button>`;
+  }
+  $("stage").innerHTML = html;
+  G._cands = cands;
+}
+function toTyping(){ G.typing = true; logLine("⌨️ タイピングモードに切り替えた"); showPick(); }
+
+/* ---- 詠唱画面 ---- */
+let rec = null, chantTimer = null, tickTimer = null, startedAt = 0, finalText = "", settled = false;
+
+function chooseSpell(i){
+  if(G.busy) return;
+  G.busy = true;
+  const s = G._cands[i];
+  G._spell = s;
+  // 想定詠唱秒数（文字数ベース）＋余裕
+  const chars = norm(s.text).length;
+  G._par = Math.max(1.2, chars * 0.17);
+  // タイピングは変換の手間があるので制限をたっぷり取る
+  const limit = G.typing ? (G._par * 6 + 8) : (G._par * 2.4 + 2.0);
+  G._limit = limit;
+
+  $("stage").innerHTML = `
+    <div id="chantBox">
+      <div class="chant-label">${G.typing ? "この呪文を打ち込め" : "この呪文を声に出して唱えろ"}</div>
+      <div class="chant-text">${s.text}</div>
+      <div class="timer"><i id="tbar"></i></div>
+      ${G.typing ? `
+        <input id="typeInput" type="text" placeholder="呪文を入力…" autocomplete="off" autocapitalize="off">
+        <button class="btn gold" onclick="submitTyping()">詠　唱</button>
+      ` : `
+        <div class="mic-orb" id="orb">🎤</div>
+        <div class="heard" id="heard"></div>
+        <button class="btn ghost" onclick="stopChant()">詠唱を終える</button>
+      `}
+    </div>`;
+
+  startedAt = performance.now();
+  settled = false;
+  finalText = "";
+
+  // タイマーバー
+  clearInterval(tickTimer);
+  tickTimer = setInterval(()=>{
+    const el = (performance.now()-startedAt)/1000;
+    const w = Math.max(0, 100 - el/limit*100);
+    const bar = $("tbar");
+    if(bar) bar.style.width = w + "%";
+    if(el >= limit) stopChant();
+  }, 60);
+
+  if(G.typing){
+    const ti = $("typeInput");
+    ti.focus();
+    ti.addEventListener("keydown", e=>{ if(e.key==="Enter") submitTyping(); });
+  }else{
+    startListen();
+  }
+}
+
+function startListen(){
+  try{
+    rec = new SR();
+  }catch(e){
+    G.typing = true; logLine("⚠️ マイクを起動できなかった。タイピングモードに切り替えるね"); showPick(); return;
+  }
+  rec.lang = "ja-JP";
+  rec.interimResults = true;
+  rec.continuous = true;
+  rec.maxAlternatives = 4;
+
+  const orb = $("orb");
+  if(orb) orb.classList.add("listening");
+
+  rec.onresult = e => {
+    let interim = "";
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const r = e.results[i];
+      if(r.isFinal){
+        // 候補の中から呪文に一番近いものを採用（認識ゆれの救済）
+        let best = r[0].transcript, bestS = accuracy(best, G._spell);
+        for(let a=1; a<r.length; a++){
+          const sc = accuracy(r[a].transcript, G._spell);
+          if(sc > bestS){ bestS = sc; best = r[a].transcript; }
+        }
+        finalText += best;
+      }else{
+        interim += r[0].transcript;
+      }
+    }
+    const h = $("heard");
+    if(h) h.textContent = finalText + interim;
+    // 十分な精度に達したら即確定（速さが得点になる）
+    if(accuracy(finalText + interim, G._spell) >= 0.93) stopChant();
+  };
+  rec.onerror = ev => {
+    if(ev.error === "not-allowed" || ev.error === "service-not-allowed"){
+      cleanup();
+      G.typing = true;
+      logLine("🎤 マイクが許可されてないみたい。タイピングモードに切り替えるね");
+      showPick();
+    }
+  };
+  rec.onend = () => { if(!settled) settle(); };
+
+  try{ rec.start(); }catch(e){}
+}
+
+function stopChant(){
+  if(settled) return;
+  if(rec){ try{ rec.stop(); }catch(e){} }
+  else settle();
+}
+
+function cleanup(){
+  settled = true;
+  clearInterval(tickTimer);
+  if(rec){ try{ rec.abort(); }catch(e){} rec = null; }
+}
+
+function submitTyping(){
+  if(settled) return;
+  const ti = $("typeInput");
+  finalText = ti ? ti.value : "";
+  settle();
+}
+
+/* =========================================================
+   判定
+   ========================================================= */
+function settle(){
+  if(settled) return;
+  const elapsed = (performance.now() - startedAt)/1000;
+  cleanup();
+
+  const s = G._spell;
+  const acc = accuracy(finalText, s);
+  const base = {1:18, 2:34, 3:58}[s.r];
+
+  // 速度ボーナス：想定より速ければ最大 ×1.35
+  let speed = 1;
+  if(acc >= 0.6 && !G.typing){
+    speed = Math.max(0.85, Math.min(1.35, (G._par * 1.9) / Math.max(elapsed, .4)));
+  }
+
+  let verdict, cls, dmg, selfDmg = 0;
+  if(acc >= 0.95){
+    verdict = "会心の詠唱"; cls = "v-crit";
+    dmg = base * 1.5 * speed; G.stats.crit++; SFX.crit();
+  }else if(acc >= 0.8){
+    verdict = "詠唱成功"; cls = "v-ok";
+    dmg = base * (0.75 + acc*0.35) * speed; SFX.hit();
+  }else if(acc >= 0.55){
+    verdict = "不完全な詠唱"; cls = "v-weak";
+    dmg = base * 0.45 * speed; SFX.weak();
+  }else{
+    verdict = "詠唱失敗…"; cls = "v-fail";
+    dmg = 0; selfDmg = s.r * 5 + 3; SFX.fail();
+  }
+  dmg = Math.round(dmg);
+
+  G.stats.turns++;
+  G.stats.accSum += acc;
+
+  // ダメージ適用
+  const atkSide = G.turn === 0 ? "L" : "R";
+  const defSide = G.turn === 0 ? "R" : "L";
+  if(dmg > 0) G[defSide].hp -= dmg;
+  if(selfDmg > 0) G[atkSide].hp -= selfDmg;
+
+  const who = G.mode==="duel" ? (G.turn===0 ? G.L.name : G.R.name) : "あなた";
+  logLine(selfDmg
+    ? `<b>${who}</b> は詠唱に失敗し、反動で <b>${selfDmg}</b> のダメージ`
+    : `<b>${who}</b> の「${s.text}」→ <b>${dmg}</b> ダメージ（精度 ${Math.round(acc*100)}%）`);
+
+  const heardShown = finalText.trim() || "（何も聞き取れなかった）";
+  $("stage").innerHTML = `
+    <div class="verdict">
+      <div class="v-title ${cls}">${verdict}</div>
+      <div class="v-dmg ${cls} mono-num">${selfDmg ? "−"+selfDmg+" 自傷" : dmg}</div>
+      <div class="acc-row">
+        <span>精度</span>
+        <span class="acc-bar"><i id="accFill" style="width:0%"></i></span>
+        <span class="mono-num">${Math.round(acc*100)}%</span>
+      </div>
+      <div class="acc-row"><span>詠唱時間</span><span style="flex:1"></span><span class="mono-num">${elapsed.toFixed(2)} 秒</span></div>
+      <div class="v-heard">聞こえた言葉：<b>${escapeHtml(heardShown)}</b></div>
+    </div>
+    <button class="btn gold" style="margin-top:16px" id="nextBtn">つづける</button>`;
+
+  requestAnimationFrame(()=>{ const f=$("accFill"); if(f) f.style.width = Math.round(acc*100)+"%"; });
+  if(dmg > 0 || selfDmg > 0){
+    const el = $(defSide==="R" ? "fR" : "fL");
+    el.classList.add("shake"); setTimeout(()=>el.classList.remove("shake"), 420);
+  }
+  paint();
+  $("nextBtn").onclick = afterTurn;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ---- ターン終了後 ---- */
+function afterTurn(){
+  // 決着チェック
+  if(G.R.hp <= 0){
+    if(G.mode === "duel"){ return gameOver(true, `${G.L.name} の勝利！`); }
+    G.stage++;
+    if(G.stage >= ENEMIES.length) return gameOver(true, "");
+    setEnemy(G.stage);
+    logLine(`✨ 敵を打ち倒した！ 第${G.stage+1}の試練 ── <b>${G.R.name}</b> が現れた！`);
+    G.L.hp = Math.min(G.L.max, G.L.hp + 25);
+    logLine("🌿 休息をとり、HPが 25 回復した");
+    paint(); return showPick();
+  }
+  if(G.L.hp <= 0){
+    return gameOver(false, G.mode==="duel" ? `${G.R.name} の勝利！` : "");
+  }
+
+  if(G.mode === "duel"){
+    G.turn = 1 - G.turn;
+    paint();
+    return showPick();
+  }
+
+  // ひとり修行：敵の反撃
+  const dmg = Math.round(rnd(G.R.atk[0], G.R.atk[1]));
+  G.L.hp -= dmg;
+  SFX.foe();
+  logLine(`🔥 ${G.R.cry}。<b>${dmg}</b> のダメージ`);
+  paint();
+  const el = $("fL"); el.classList.add("shake"); setTimeout(()=>el.classList.remove("shake"),420);
+
+  if(G.L.hp <= 0) return gameOver(false, "");
+  showPick();
+}
+
+/* =========================================================
+   合言葉ゲート
+   身内向けの目隠し。ソースを読み解けば突破できる程度のもので、
+   秘密を守る鍵ではない（ゲームなので実害なし）。
+   ========================================================= */
+function ph(s){
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619) >>> 0; }
+  return h.toString(36);
+}
+const GATE_HASH = "1al2tjp";
+const GATE_KEY  = "jumon_gate_v1";
+
+function openGate(){
+  $("gate").classList.add("hide");
+  $("title").classList.remove("hide");
+}
+function tryPass(){
+  const v = norm($("passIn").value || "");
+  if(ph(v) === GATE_HASH){
+    try{ localStorage.setItem(GATE_KEY, GATE_HASH); }catch(e){}
+    beep(660,.1); setTimeout(()=>beep(990,.3,"triangle",.15),90);
+    openGate();
+  }else{
+    $("passMsg").textContent = "扉は開かない。合言葉が違う。";
+    $("gate").querySelector(".card").classList.add("shake");
+    setTimeout(()=>$("gate").querySelector(".card").classList.remove("shake"), 420);
+    SFX.fail();
+  }
+}
+(function initGate(){
+  let saved = null;
+  try{ saved = localStorage.getItem(GATE_KEY); }catch(e){}
+  if(saved === GATE_HASH){ openGate(); return; }
+  const el = $("passIn");
+  el.addEventListener("keydown", e=>{ if(e.key==="Enter") tryPass(); });
+  setTimeout(()=>el.focus(), 200);
+})();
+
+function gameOver(win, msg){
+  $("battle").classList.add("hide");
+  $("over").classList.remove("hide");
+  $("ovEmoji").textContent = win ? "🏆" : "💀";
+  if(G.mode === "duel"){
+    $("ovTitle").textContent = "決　着";
+    $("ovSub").textContent = msg;
+  }else if(win){
+    $("ovTitle").textContent = "試練踏破";
+    $("ovSub").innerHTML = "3体の魔物を退けた。<br>ギルドは君を <b>大魔導士</b> と認めた。";
+  }else{
+    $("ovTitle").textContent = "力尽きた…";
+    $("ovSub").innerHTML = `第${G.stage+1}の試練「${G.R.name}」に敗れた。<br>舌を鍛えて出直せ。`;
+  }
+  $("stTurns").textContent = G.stats.turns;
+  $("stAcc").textContent = (G.stats.turns ? Math.round(G.stats.accSum/G.stats.turns*100) : 0) + "%";
+  $("stCrit").textContent = G.stats.crit;
+}
+</script>
+</body>
+</html>
