@@ -243,6 +243,13 @@ h1,h2,h3{margin:0}
 .card-t{font-size:15.5px;font-family:"Yu Mincho","Hiragino Mincho ProN",serif;line-height:1.35}
 .card-r{font-size:10px;color:var(--text-dim);line-height:1.3;letter-spacing:.02em}
 .card-p{font-size:8.5px;color:var(--gold-dim);letter-spacing:.08em;flex:none}
+.land-list{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:10px 0 14px}
+.land{
+  font-size:12.5px;padding:4px 9px;border-radius:99px;
+  font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+}
+.land.ok{background:rgba(126,224,160,.14);color:var(--ok);border:1px solid rgba(126,224,160,.35)}
+.land.ng{background:rgba(255,90,122,.13);color:var(--ng);border:1px solid rgba(255,90,122,.38);text-decoration:line-through}
 .draw-note{font-size:12px;color:var(--text-dim);line-height:1.7;margin-bottom:10px}
 .draw-note b{color:var(--gold)}
 .card-no{
@@ -330,7 +337,7 @@ h1,h2,h3{margin:0}
     </button>
     <button class="btn" onclick="craftSetup()">
       呪文づくり
-      <div class="mode-desc">2〜6人。手札10枚（引き直しあり）で自分だけの呪文を組んで唱え、投票で競う</div>
+      <div class="mode-desc">3〜6人。手札10枚から最大5枚を選んで呪文を組み、唱えて投票で競う</div>
     </button>
     <button class="btn" onclick="startGame('duel')">
       ふたり対戦
@@ -343,7 +350,7 @@ h1,h2,h3{margin:0}
       <b>遊びかた</b><br>
       どのモードも、やることは<b>呪文を声に出して唱える</b>こと。<br>
       正確さ × 速さで強さが決まる。噛むと失敗する。<br>
-      <b>呪文づくり</b>は手札10枚から好きな枚数を選んで自分の呪文を組み、みんなの投票で競う。<br>
+      <b>呪文づくり</b>は手札10枚から最大5枚を選んで呪文を組み、みんなの投票で競う。<b>言えなかった札は威力に数えない</b>。<br>
       <br>
       🎤 マイクの許可を求められたら「許可」を押してね。<br>
       声が出せない場所なら <b>タイピングモード</b> でも遊べるよ。
@@ -949,7 +956,9 @@ function startGame(mode){
   }
   G.turn = 0;
   $("title").classList.add("hide");
+  $("over").classList.add("hide");
   $("battle").classList.remove("hide");
+  $("fighters").classList.remove("hide");
   $("log").innerHTML = "";
   logLine(mode==="duel" ? "⚔️ 詠唱決闘、開始！" : `⚔️ 第1の試練 ── ${G.R.name} が現れた！`);
   paint();
@@ -1425,24 +1434,40 @@ function tryPass(){
    手札から3枚選んで自分だけの呪文を組み、声に出して唱え、
    最後にみんなで投票する。
    ========================================================= */
-const C = { players:[], round:0, rounds:3, topic:"", turn:0, entries:[], voter:0, hand:[], chosen:[], draws:0 };
+const C = { players:[], round:0, rounds:3, topic:"", turn:0, order:[], entries:[], voter:0,
+            hand:[], deck:[], chosen:[], discard:[], draws:0 };
 
-// 引き直しは3回まで。粘るほど呪文の威力が落ちる
-const MAX_DRAWS = 3;
-const DRAW_MULT = [1, 0.8, 0.6, 0.4];
-const curMult = () => DRAW_MULT[Math.min(C.draws, MAX_DRAWS)];
+const MAX_DRAWS  = 3;
+const DRAW_MULT  = [1, 0.9, 0.8, 0.7];   // 粘るほど威力は落ちるが、罠にならない程度に
+const MAX_PICK   = 5;                    // 唱えられる札の上限
+const LAND_LINE  = 0.7;                  // この精度で「その札は唱えられた」とみなす
+const curMult    = () => DRAW_MULT[Math.min(C.draws, MAX_DRAWS)];
+const curPlayer  = () => C.order[C.turn];
+
+/* 札ごとに「ちゃんと言えたか」を見る。
+   呪文全体をひとまとめに比べると、長い呪文ほど1語の噛みが薄まって
+   有利になってしまう（実測：1枚なら0%、10枚なら87%）。
+   札単位で見れば、長い呪文は落とす札が増えるぶん本当に不利になる。 */
+function landedCards(heard, cards){
+  const hk = kana(heard), hn = norm(heard);
+  return cards.map(c => Math.max(
+    simOne(hn, norm(c.t)), simOne(hk, kana(c.t)), simOne(hk, kana(c.r))
+  ) >= LAND_LINE);
+}
 
 function craftSetup(){
   $("title").classList.add("hide");
+  $("over").classList.add("hide");
   $("battle").classList.remove("hide");
   $("fighters").classList.add("hide");
   $("log").innerHTML = "";
-  const n = C.players.length || 3;
+  const n = Math.max(3, C.players.length || 3);
   $("stage").innerHTML = `
     <div class="sect-label">何人で遊ぶ？</div>
-    <div class="num-row">${[2,3,4,5,6].map(i=>
+    <div class="num-row">${[3,4,5,6].map(i=>
       `<button class="num-btn ${i===n?'on':''}" onclick="craftSetPlayers(${i})">${i}</button>`).join("")}</div>
-    <div class="sect-label" style="margin-top:16px">名前（そのままでもOK）</div>
+    <div class="draw-note" style="margin-top:9px">投票で競うので3人から。ふたりなら「ふたり対戦」へ。</div>
+    <div class="sect-label" style="margin-top:14px">名前（そのままでもOK）</div>
     <div id="nameList"></div>
     <button class="btn gold" style="margin-top:12px" onclick="craftBegin()">はじめる</button>
     <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">もどる</button>`;
@@ -1468,19 +1493,27 @@ function craftRound(){
   C.turn = 0;
   C.entries = [];
   C.voter = 0;
+  // 後の人ほど他人の呪文を聞いてから作れて有利なので、幕ごとに先攻をずらす
+  const n = C.players.length;
+  C.order = Array.from({length:n}, (_,i)=>(i + C.round - 1) % n);
+  const last = C.round === C.rounds;
   $("stage").onclick = null;
   $("stage").innerHTML = `
     <div class="verdict">
-      <div class="sect-label">第 ${C.round} 幕 ／ 全 ${C.rounds} 幕</div>
+      <div class="sect-label">第 ${C.round} 幕 ／ 全 ${C.rounds} 幕${last ? "　── 終幕" : ""}</div>
       <div class="topic-jp">${C.topic}</div>
-      <div class="topic-note">手札10枚。いらない札は1回だけ引き直せる。<br>好きな枚数を選んで呪文を組み、声に出して唱えよ</div>
+      <div class="topic-note">
+        手札10枚。いらない札は3回まで引き直せる。<br>
+        <b>最大5枚</b>を唱える順に選んで呪文を組め。<br>言えなかった札は威力に数えない。全部言い切れば +20。<br>
+        ${last ? '<b style="color:var(--ember)">終幕は得点1.5倍</b>'
+               : `先攻は ${escapeHtml(C.players[C.order[0]].name)}`}
+      </div>
     </div>
     <button class="btn gold" style="margin-top:18px" onclick="craftPass()">はじめる</button>`;
 }
 
-// 手札を人に見られないよう、渡すタイミングで一枚挟む
 function craftPass(){
-  const p = C.players[C.turn];
+  const p = C.players[curPlayer()];
   $("stage").innerHTML = `
     <div class="verdict">
       <div class="sect-label">画面を渡して</div>
@@ -1491,7 +1524,6 @@ function craftPass(){
 }
 
 function craftHand(){
-  // 山札から10枚。呼び・飾り・命が1枚も無いと呪文にならないので最低1枚は保証する
   C.deck = shuffle(CARDS);
   C.hand = C.deck.splice(0, 10);
   ["呼","飾","命"].forEach(k => {
@@ -1513,16 +1545,16 @@ function shuffle(a){
   return a;
 }
 
-/* ---- 引き直し（1回だけ） ---- */
+/* ---- 引き直し（3回まで・粘るほど威力が落ちる） ---- */
 function craftRenderDraw(){
-  const p = C.players[C.turn];
+  const p = C.players[curPlayer()];
   const n = C.discard.length;
   $("stage").innerHTML = `
     <div class="sect-label">${escapeHtml(p.name)}／お題：${C.topic}</div>
     <div class="draw-note">
       いらない札を選んで引き直せる。<b>あと ${MAX_DRAWS - C.draws} 回</b>。<br>
       いまの威力は <b>×${curMult().toFixed(1)}</b>${C.draws < MAX_DRAWS
-        ? `　／　引き直すと <b>×${DRAW_MULT[C.draws+1].toFixed(1)}</b> に落ちる` : ""}
+        ? `　／　引き直すと <b>×${DRAW_MULT[C.draws+1].toFixed(1)}</b>` : ""}
     </div>
     <div class="hand">${C.hand.map((c,i)=>{
       const off = C.discard.includes(i);
@@ -1549,21 +1581,25 @@ function craftRedraw(){
   C.discard = [];
   C.draws++;
   beep(620,.09); setTimeout(()=>beep(880,.14),70);
-  if(C.draws >= MAX_DRAWS) return craftRenderHand();   // 打ち止め
+  if(C.draws >= MAX_DRAWS) return craftRenderHand();
   craftRenderDraw();
 }
 
 function craftRenderHand(){
-  const p = C.players[C.turn];
+  const p = C.players[curPlayer()];
   const line = C.chosen.map(i=>C.hand[i].t).join("、");
-  const power = C.chosen.reduce((s,i)=>s+C.hand[i].p, 0);
+  const raw  = C.chosen.reduce((s,i)=>s+C.hand[i].p, 0);
+  const full = C.chosen.length >= MAX_PICK;
   $("stage").innerHTML = `
     <div class="sect-label">${escapeHtml(p.name)}／お題：${C.topic}</div>
     <div class="craft-line">${line ? line + "！" : "<span style='opacity:.4'>使いたい札を、唱える順に選べ</span>"}</div>
-    <div class="craft-meta">${C.chosen.length} / ${C.hand.length}枚　威力 ${power*3}${C.draws ? ` × ${curMult().toFixed(1)} = <b style="color:var(--gold)">${Math.round(power*3*curMult())}</b>` : ` <b style="color:var(--gold)">点</b>`}</div>
+    <div class="craft-meta">${C.chosen.length} / ${MAX_PICK}枚　威力 ${raw*3}${
+      C.draws ? ` × ${curMult().toFixed(1)} = <b style="color:var(--gold)">${Math.round(raw*3*curMult())}</b>`
+              : ` <b style="color:var(--gold)">点</b>`}</div>
     <div class="hand">${C.hand.map((c,i)=>{
       const at = C.chosen.indexOf(i);
-      return `<button class="wcard ${at>=0?'picked':''}" onclick="craftPick(${i})">
+      const dim = at < 0 && full;
+      return `<button class="wcard ${at>=0?'picked':''} ${dim?'tossed':''}" onclick="craftPick(${i})">
         <span class="card-top"><span class="card-k k${c.k}">${c.k}</span><span class="card-p">${"◆".repeat(c.p)}</span></span>
         <span class="card-t">${c.t}</span>
         <span class="card-r">${c.r}</span>
@@ -1577,7 +1613,7 @@ function craftRenderHand(){
 function craftPick(i){
   const at = C.chosen.indexOf(i);
   if(at >= 0) C.chosen.splice(at, 1);
-  else if(C.chosen.length < C.hand.length) C.chosen.push(i);
+  else if(C.chosen.length < MAX_PICK) C.chosen.push(i);
   craftRenderHand();
 }
 
@@ -1587,31 +1623,40 @@ function craftChant(){
   const spell = {
     text: cards.map(c=>c.t).join("、") + "！",
     read: cards.map(c=>c.r).join("、"),
-    alt: [],
+    alt : [],
   };
-  const power = cards.reduce((s,c)=>s+c.p, 0);
-  const mult  = curMult();
-  G.chantDone = res => craftAfterChant(res, spell, power, mult, C.draws);
+  const mult = curMult();
+  G.chantDone = res => craftAfterChant(res, spell, cards, mult, C.draws);
   startChant(spell);
 }
 
-function craftAfterChant(res, spell, power, mult, draws){
-  const acc = res.acc;
-  const chant = acc >= 0.92 ? 30 : acc >= 0.75 ? 20 : acc >= 0.5 ? 10 : 0;
-  const label = acc >= 0.92 ? "完璧な詠唱" : acc >= 0.75 ? "よい詠唱" : acc >= 0.5 ? "たどたどしい詠唱" : "噛んだ";
-  const cls   = acc >= 0.92 ? "v-crit" : acc >= 0.75 ? "v-ok" : acc >= 0.5 ? "v-weak" : "v-fail";
-  const pts = Math.round(power * 3 * mult);
-  C.entries.push({ pi:C.turn, text:spell.text, chant, power, mult, draws, pts, votes:0 });
+function craftAfterChant(res, spell, cards, mult, draws){
+  const land  = landedCards(res.heard, cards);
+  const nLand = land.filter(Boolean).length;
+  const power = cards.reduce((s,c,i)=> s + (land[i] ? c.p : 0), 0);   // 落とした札は数えない
+  const pts   = Math.round(power * 3 * mult);
+  const chant = Math.round(30 * nLand / cards.length);
+  const full  = nLand === cards.length;
+  const bonus = full ? 20 : 0;            // 完唱ボーナス：少なく確実に決める道をつくる
+  const label = nLand === cards.length ? "唱え切った"
+              : nLand >= cards.length/2 ? "半端な詠唱" : "ほとんど落とした";
+  const cls   = nLand === cards.length ? "v-crit"
+              : nLand >= cards.length/2 ? "v-weak" : "v-fail";
+
+  C.entries.push({ pi:curPlayer(), text:spell.text, chant, mult, draws, pts, bonus,
+                   nLand, nCards:cards.length, votes:0 });
 
   $("stage").innerHTML = `
     <div class="verdict">
       <div class="v-title ${cls}">${label}</div>
-      <div class="craft-line" style="margin:10px 0">${spell.text}</div>
-      <div class="acc-row"><span>詠唱</span><span style="flex:1"></span><span class="mono-num">${chant} 点（精度 ${Math.round(acc*100)}%）</span></div>
-      <div class="acc-row"><span>呪文の威力</span><span style="flex:1"></span>
+      <div class="v-dmg ${cls} mono-num">${nLand} / ${cards.length}</div>
+      <div class="land-list">${cards.map((c,i)=>
+        `<span class="land ${land[i]?'ok':'ng'}">${land[i]?"":"✕ "}${c.t}</span>`).join("")}</div>
+      <div class="acc-row"><span>詠唱</span><span style="flex:1"></span><span class="mono-num">${chant} 点</span></div>
+      <div class="acc-row"><span>威力（唱えた札のみ）</span><span style="flex:1"></span>
         <span class="mono-num">${draws ? `${power*3} × ${mult.toFixed(1)} = ${pts}` : pts} 点</span></div>
-      ${draws ? `<div class="acc-row"><span>引き直し ${draws} 回ぶん減衰</span><span style="flex:1"></span>
-        <span class="mono-num">−${power*3 - pts}</span></div>` : ""}
+      ${full ? `<div class="acc-row"><span style="color:var(--gold)">完唱ボーナス</span><span style="flex:1"></span>
+        <span class="mono-num" style="color:var(--gold)">+${bonus} 点</span></div>` : ""}
       <div class="v-heard">聞こえた言葉：<b>${escapeHtml(res.heard.trim() || "（聞き取れなかった）")}</b></div>
     </div>
     <button class="btn gold" style="margin-top:16px" onclick="craftNextTurn()">つぎの人へ</button>`;
@@ -1625,7 +1670,7 @@ function craftNextTurn(){
 }
 
 function craftVotePass(){
-  const p = C.players[C.voter];
+  const p = C.players[C.order[C.voter]];
   $("stage").innerHTML = `
     <div class="verdict">
       <div class="sect-label">投票 ── 画面を渡して</div>
@@ -1635,18 +1680,18 @@ function craftVotePass(){
     <button class="btn gold" style="margin-top:18px" onclick="craftVote()">${escapeHtml(p.name)}です</button>`;
 }
 function craftVote(){
-  const p = C.players[C.voter];
+  const me = C.order[C.voter];
   $("stage").innerHTML = `
-    <div class="sect-label">${escapeHtml(p.name)}／「${C.topic}」に一番合っていたのは？</div>
+    <div class="sect-label">${escapeHtml(C.players[me].name)}／「${C.topic}」に一番合っていたのは？</div>
     ${C.entries.map((e,i)=>`
-      <button class="spell-pick" ${e.pi===C.voter?"disabled style='opacity:.35'":""} onclick="craftCastVote(${i})">
+      <button class="spell-pick" ${e.pi===me?"disabled style='opacity:.35'":""} onclick="craftCastVote(${i})">
         <div class="sp-head"><span class="sp-rank r2">${escapeHtml(C.players[e.pi].name)}</span>
-        ${e.pi===C.voter?'<span class="sp-dmg">自分には入れられない</span>':''}</div>
+        ${e.pi===me?'<span class="sp-dmg">自分には入れられない</span>':''}</div>
         <div class="sp-text">${e.text}</div>
       </button>`).join("")}`;
 }
 function craftCastVote(i){
-  if(C.entries[i].pi === C.voter) return;
+  if(C.entries[i].pi === C.order[C.voter]) return;
   C.entries[i].votes++;
   beep(760,.12);
   C.voter++;
@@ -1655,13 +1700,17 @@ function craftCastVote(i){
 }
 
 function craftRoundResult(){
+  const last      = C.round === C.rounds;
+  const roundMult = last ? 1.5 : 1;
+  const allVotes  = C.players.length - 1;          // 自分以外の全員ぶん
   C.entries.forEach(e=>{
-    e.total = e.chant + e.pts + e.votes*25;
+    e.uni   = e.votes >= allVotes && allVotes >= 2;
+    e.total = Math.round((e.chant + e.pts + e.bonus + e.votes*25 + (e.uni ? 25 : 0)) * roundMult);
     C.players[e.pi].score += e.total;
   });
   const ranked = C.entries.slice().sort((a,b)=>b.total-a.total);
   $("stage").innerHTML = `
-    <div class="sect-label">第 ${C.round} 幕の結果 ── ${C.topic}</div>
+    <div class="sect-label">第 ${C.round} 幕の結果 ── ${C.topic}${last ? "　／ 終幕 ×1.5" : ""}</div>
     ${ranked.map((e,i)=>`
       <div class="res-row ${i===0?'top':''}">
         <div class="res-head">
@@ -1669,10 +1718,12 @@ function craftRoundResult(){
           <span class="res-total mono-num">${e.total}</span>
         </div>
         <div class="res-spell">${e.text}</div>
-        <div class="res-break">詠唱 ${e.chant}　威力 ${e.pts}${e.draws?`（引き直し${e.draws}回 ×${e.mult.toFixed(1)}）`:""}　票 ${e.votes} × 25</div>
+        <div class="res-break">詠唱 ${e.chant}（${e.nLand}/${e.nCards}枚）${e.bonus?"　完唱 +20":""}　威力 ${e.pts}${
+          e.draws?`（引直${e.draws}回 ×${e.mult.toFixed(1)}）`:""}</div>
+        <div class="res-break">票 ${e.votes}×25${e.uni?"　満場一致 +25":""}${last?"　→ 合計×1.5":""}</div>
       </div>`).join("")}
-    <button class="btn gold" style="margin-top:14px" onclick="${C.round < C.rounds ? "craftRound()" : "craftFinal()"}">
-      ${C.round < C.rounds ? "つぎの幕へ" : "総合結果"}</button>`;
+    <button class="btn gold" style="margin-top:14px" onclick="${last ? "craftFinal()" : "craftRound()"}">
+      ${last ? "総合結果" : "つぎの幕へ"}</button>`;
 }
 
 function craftFinal(){
