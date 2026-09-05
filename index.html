@@ -220,6 +220,7 @@ h1,h2,h3{margin:0}
 .topic-read{font-size:12.5px;color:var(--text-dim);letter-spacing:.06em;margin:-4px 0 12px}
 .tech-tail{color:var(--gold);text-shadow:0 0 18px rgba(232,196,106,.5)}
 .land.tech{border-style:double;border-width:3px;font-weight:700}
+.land.weak{box-shadow:0 0 12px rgba(255,122,82,.5);border-color:var(--ember)}
 .pass-name{
   font-family:"Yu Mincho",serif;font-size:30px;letter-spacing:.1em;
   padding:12px 0 6px;color:var(--text);
@@ -342,7 +343,7 @@ h1,h2,h3{margin:0}
   <div class="card">
     <button class="btn gold" onclick="startGame('solo')">
       ひとり修行
-      <div class="mode-desc">魔物3体と連戦。ギルドの試練に挑む</div>
+      <div class="mode-desc">手札で呪文を組み、魔物3体と連戦する</div>
     </button>
     <button class="btn" onclick="craftSetup()">
       呪文づくり
@@ -350,7 +351,7 @@ h1,h2,h3{margin:0}
     </button>
     <button class="btn" onclick="startGame('duel')">
       ふたり対戦
-      <div class="mode-desc">1台を交代で回す。先に相手のHPを削れ</div>
+      <div class="mode-desc">1台を交代で回す。呪文を組んで先に相手を削れ</div>
     </button>
 
     <div id="micWarn" class="hide"></div>
@@ -359,7 +360,7 @@ h1,h2,h3{margin:0}
       <b>遊びかた</b><br>
       どのモードも、やることは<b>呪文を声に出して唱える</b>こと。<br>
       正確さ × 速さで強さが決まる。噛むと失敗する。<br>
-      <b>呪文づくり</b>は手札10枚から最大5枚を選んで呪文を組み、みんなの投票で競う。<b>言えなかった札は威力に数えない</b>。<br>
+      どのモードも<b>手札10枚から最大5枚</b>を選んで呪文を組み、最後に<b>技名で締める</b>。<b>言えなかった札は威力に数えない</b>。<br>呪文づくりだけは、みんなの投票で競う。<br>
       <br>
       🎤 マイクの許可を求められたら「許可」を押してね。<br>
       声が出せない場所なら <b>タイピングモード</b> でも遊べるよ。
@@ -412,73 +413,6 @@ h1,h2,h3{margin:0}
    yomi : ひらがな読み（認識がかな寄りで返ってきた時の保険）
    alt  : 表記ゆれの許容候補
    ========================================================= */
-const SPELLS = [
-  // ---- 階位1：基礎呪文 ----
-  {r:1, text:"火よ、灯れ",         read:"ひよ、ともれ",           alt:[]},
-  {r:1, text:"氷の刃よ",           read:"こおりのやいばよ",       alt:[]},
-  {r:1, text:"風よ、吹き荒れろ",   read:"かぜよ、ふきあれろ",     alt:[]},
-  {r:1, text:"光あれ",             read:"ひかりあれ",             alt:[]},
-  {r:1, text:"石の壁よ、我を守れ", read:"いしのかべよ、われをまもれ", alt:["いしのかべよわたしをまもれ"]},
-  {r:1, text:"雷よ、落ちろ",       read:"かみなりよ、おちろ",     alt:[]},
-  {r:1, text:"闇よ、飲み込め",     read:"やみよ、のみこめ",       alt:[]},
-  {r:1, text:"炎の矢を放て",       read:"ほのおのやをはなて",     alt:[]},
-
-  // ---- 階位2：中級呪文 ----
-  {r:2, text:"紅蓮の炎よ、我が敵を焼き払え", read:"ぐれんのほのおよ、わがてきをやきはらえ", alt:[]},
-  {r:2, text:"凍てつく吹雪よ、全てを閉ざせ", read:"いてつくふぶきよ、すべてをとざせ",       alt:[]},
-  {r:2, text:"疾風の刃よ、駆け抜けろ",       read:"はやてのやいばよ、かけぬけろ",           alt:["しっぷうのやいばよかけぬけろ"]},
-  {r:2, text:"雷鳴轟け、天よ裂けろ",         read:"らいめいとどろけ、てんよさけろ",         alt:[]},
-  {r:2, text:"深淵の闇よ、我に力を貸せ",     read:"しんえんのやみよ、われにちからをかせ",   alt:["しんえんのやみよわたしにちからをかせ"]},
-  {r:2, text:"聖なる光よ、傷を癒せ",         read:"せいなるひかりよ、きずをいやせ",         alt:[]},
-  {r:2, text:"大地よ震えろ、敵を砕け",       read:"だいちよふるえろ、てきをくだけ",         alt:[]},
-  {r:2, text:"星屑の雨よ、降り注げ",         read:"ほしくずのあめよ、ふりそそげ",           alt:[]},
-
-  // ---- 階位3：奥義 ----
-  {r:3, text:"万象を貫く一条の光よ、我が意志のもとに顕現せよ",
-        read:"ばんしょうをつらぬくいちじょうのひかりよ、わがいしのもとにけんげんせよ", alt:[]},
-  {r:3, text:"業火よ渦巻け、灰燼に帰せ、紅蓮爆炎陣",
-        read:"ごうかよ うずまけ、かいじんに きせ、ぐれんばくえんじん",
-        alt:["ごうかようずまけかいじんにかえせぐれんばくえんじん"]},
-  {r:3, text:"七つの星が巡る時、封印されし竜よ目覚めよ",
-        read:"ななつのほしがめぐるとき、ふういんされしりゅうよめざめよ", alt:[]},
-  {r:3, text:"凍える静寂よ、時さえ止めて、絶対零度の牢獄へ",
-        read:"こごえるせいじゃくよ、ときさえとめて、ぜったいれいどのろうごくへ", alt:[]},
-  {r:3, text:"大地の脈動よ、我が声に応え、天を穿つ槍となれ",
-        read:"だいちのみゃくどうよ、わがこえにこたえ、てんをうがつやりとなれ", alt:[]},
-  {r:3, text:"闇より出でし者よ、汝の名において、全てを無に還せ",
-        read:"やみよりいでしものよ、なんじのなにおいて、すべてをむにかえせ", alt:[]},
-
-  // ---- 追加ぶん：階位1 ----
-  {r:1, text:"水よ、跳ねろ",         read:"みずよ、はねろ",           alt:[]},
-  {r:1, text:"土よ、固まれ",         read:"つちよ、かたまれ",         alt:[]},
-  {r:1, text:"刃よ、研ぎ澄ませ",     read:"やいばよ、とぎすませ",     alt:[]},
-  {r:1, text:"影よ、忍び寄れ",       read:"かげよ、しのびよれ",       alt:[]},
-  {r:1, text:"霧よ、立ち込めろ",     read:"きりよ、たちこめろ",       alt:[]},
-  {r:1, text:"祈りよ、届け",         read:"いのりよ、とどけ",         alt:[]},
-
-  // ---- 追加ぶん：階位2 ----
-  {r:2, text:"灼熱の渦よ、我が前に立つ者を焼け", read:"しゃくねつのうずよ、わがまえにたつものをやけ", alt:[]},
-  {r:2, text:"静かなる湖よ、鏡となりて欺け",     read:"しずかなるみずうみよ、かがみとなりてあざむけ", alt:[]},
-  {r:2, text:"千の刃よ、雨のごとく降れ",         read:"せんのやいばよ、あめのごとくふれ",             alt:[]},
-  {r:2, text:"月の光よ、我が傷を塞げ",           read:"つきのひかりよ、わがきずをふさげ",             alt:[]},
-  {r:2, text:"大樹の根よ、絡めて離すな",         read:"たいじゅのねよ、からめてはなすな",             alt:[]},
-  {r:2, text:"灰色の風よ、記憶を奪え",           read:"はいいろのかぜよ、きおくをうばえ",             alt:[]},
-
-  // ---- 追加ぶん：階位3 ----
-  {r:3, text:"始まりの言葉を思い出せ、世界よ、我が声に従え",
-        read:"はじまりのことばをおもいだせ、せかいよ、わがこえにしたがえ", alt:[]},
-  {r:3, text:"四つの元素よ、円環を閉じよ、我が掌に集え",
-        read:"よっつのげんそよ、えんかんをとじよ、わがてのひらにつどえ", alt:[]},
-  {r:3, text:"眠れる巨人よ、目を開け、地平を踏み鳴らせ",
-        read:"ねむれるきょじんよ、めをあけ、ちへいをふみならせ", alt:[]},
-  {r:3, text:"終焉を告げる鐘よ、七度鳴り響け",
-        read:"しゅうえんをつげるかねよ、ななたびなりひびけ", alt:[]},
-  {r:3, text:"光と闇の境にて、我は理を書き換える",
-        read:"ひかりとやみのさかいにて、われはことわりをかきかえる", alt:[]},
-  {r:3, text:"星々の名を呼ぶ。来たれ、天の火よ",
-        read:"ほしぼしのなをよぶ。きたれ、てんのひよ", alt:[]},
-];
-
 /* =========================================================
    呪文づくり用のカード
    t=表記 / r=読み / p=威力(1〜3) / k=種別
@@ -776,19 +710,19 @@ const ART = {
 };
 
 const ENEMIES = [
-  {name:"泥のスライム王", art:"slime", hp:110, atk:[7,13], voice:{pitch:0.90, rate:0.95}, spells:[
+  {name:"泥のスライム王", art:"slime", weak:"命", hp:100, atk:[7,13], voice:{pitch:0.90, rate:0.95}, spells:[
     "ねばつく泥よ、絡めとれ",
     "沼の底より、湧き出でよ",
     "ぶくり、ぶくりと沈めてやろう",
     "溶かせ、骨まで溶かせ",
   ]},
-  {name:"石像の番人", art:"golem", hp:190, atk:[11,19], voice:{pitch:0.40, rate:0.74, drone:55}, spells:[
+  {name:"石像の番人", art:"golem", weak:"呼", hp:170, atk:[11,19], voice:{pitch:0.40, rate:0.74, drone:55}, spells:[
     "動かざるもの、砕けざるもの",
     "千年の重みを、その身に受けよ",
     "石の理よ、我が拳となれ",
     "この門を通した者は、まだいない",
   ]},
-  {name:"古竜ヴェルグリンド", art:"dragon", hp:300, atk:[15,26], voice:{pitch:0.28, rate:0.76, drone:41}, spells:[
+  {name:"古竜ヴェルグリンド", art:"dragon", weak:"飾", hp:260, atk:[15,26], voice:{pitch:0.28, rate:0.76, drone:41}, spells:[
     "我が喉より溢れよ、滅びの息吹",
     "灰となれ。名も、声も残さず",
     "竜語をもって命ずる ── 燃え尽きろ",
@@ -1112,9 +1046,9 @@ function startGame(mode){
   G.mode = mode;
   G.stats = {turns:0, accSum:0, crit:0};
   G.stage = 0;
-  G.L = {name: mode==="duel" ? "術士 1" : "あなた", art:"wizard1", hp:100, max:100};
+  G.L = {name: mode==="duel" ? "術士 1" : "あなた", art:"wizard1", hp:mode==="duel"?180:120, max:mode==="duel"?180:120};
   if(mode==="duel"){
-    G.R = {name:"術士 2", art:"wizard2", hp:100, max:100};
+    G.R = {name:"術士 2", art:"wizard2", hp:180, max:180};
   }else{
     setEnemy(0);
   }
@@ -1131,7 +1065,7 @@ function startGame(mode){
 
 function setEnemy(i){
   const e = ENEMIES[i];
-  G.R = {name:e.name, art:e.art, hp:e.hp, max:e.hp, atk:e.atk, spells:e.spells, voice:e.voice};
+  G.R = {name:e.name, art:e.art, weak:e.weak, hp:e.hp, max:e.hp, atk:e.atk, spells:e.spells, voice:e.voice};
 }
 
 function paint(){
@@ -1151,41 +1085,7 @@ function logLine(html){
   $("log").prepend(d);
 }
 
-const RANK_LABEL = {1:"階位 Ⅰ", 2:"階位 Ⅱ", 3:"奥　義"};
-const RANK_DMG   = {1:"18", 2:"34", 3:"58"};
 
-/* ---- 呪文3択 ---- */
-function showPick(){
-  G.busy = false;
-  $("stage").onclick = null;
-  const who = (G.mode==="duel") ? (G.turn===0 ? G.L.name : G.R.name) : "あなた";
-  const cands = [
-    pick(SPELLS.filter(s=>s.r===1)),
-    pick(SPELLS.filter(s=>s.r===2)),
-    pick(SPELLS.filter(s=>s.r===3)),
-  ];
-  let html = `<div class="sect-label">${who}の手番 ── 唱える呪文を選べ</div>`;
-  cands.forEach((s,i)=>{
-    html += `<button class="spell-pick" onclick="chooseSpell(${i})">
-      <div class="sp-head">
-        <span class="sp-rank r${s.r}">${RANK_LABEL[s.r]}</span>
-        <span class="sp-dmg">最大 ${RANK_DMG[s.r]} ダメージ</span>
-      </div>
-      <div class="sp-text">${s.text}</div>
-      <div class="sp-read">${s.read}</div>
-    </button>`;
-  });
-  const opts = [];
-  if(TTS && G.mode === "solo"){
-    opts.push(`<button class="btn ghost" onclick="toggleVoice()">${voiceOn ? "🔊 敵の声：ON" : "🔇 敵の声：OFF"}</button>`);
-  }
-  if(!G.typing && SR){
-    opts.push(`<button class="btn ghost" onclick="toTyping()">🎤 声が出せない → タイピング</button>`);
-  }
-  if(opts.length) html += `<div class="opt-row">${opts.join("")}</div>`;
-  $("stage").innerHTML = html;
-  G._cands = cands;
-}
 function toTyping(){ G.typing = true; logLine("⌨️ タイピングモードに切り替えた"); showPick(); }
 
 /* ---- 詠唱画面 ---- */
@@ -1240,12 +1140,6 @@ function bestHeard(){
 // 判定はこちらで区切るので、端末側の都合で切れたら黙って録り直す。
 const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent)
             || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-function chooseSpell(i){
-  if(G.busy) return;
-  G.busy = true;
-  startChant(G._cands[i]);
-}
 
 // 呪文ひとつを唱えさせる。呪文づくりモードからも同じものを使う。
 function startChant(s){
@@ -1480,6 +1374,71 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
+
+/* =========================================================
+   戦闘モード（ひとり修行・ふたり対戦）も呪文づくりで戦う
+   ========================================================= */
+function showPick(){
+  G.busy = false;
+  $("stage").onclick = null;
+  C.label  = (G.mode === "duel") ? (G.turn === 0 ? G.L.name : G.R.name) : "あなた";
+  C.onDone = battleAfterChant;
+  C.tech   = makeTech();
+  dealHand();
+}
+
+function battleAfterChant(res, spell, cards, mult, draws){
+  const all     = [...cards, C.tech];
+  const landAll = landedCards(res.heard, all);
+  const land    = landAll.slice(0, cards.length);
+  const finish  = landAll[cards.length];
+  const nLand   = land.filter(Boolean).length;
+  const weak    = (G.mode === "solo") ? G.R.weak : null;
+  const power   = cards.reduce((s,c,i)=> s + (land[i] ? c.p * (weak && c.k === weak ? 2 : 1) : 0), 0);
+
+  let dmg = Math.round(power * 5 * mult * (finish ? 1.5 : 1));
+  let selfDmg = 0;
+  if(nLand === 0){ dmg = 0; selfDmg = 12; }   // 一枚も言えなければ暴発
+
+  const label = (nLand === cards.length && finish) ? "決まった"
+              : nLand === 0                        ? "暴発した"
+              : finish                             ? "半端に決まった" : "決め損ねた";
+  const cls   = (nLand === cards.length && finish) ? "v-crit"
+              : nLand === 0                        ? "v-fail" : "v-weak";
+  if(cls === "v-crit") SFX.crit(); else if(nLand === 0) SFX.fail(); else SFX.hit();
+
+  const atk = G.turn === 0 ? "L" : "R";
+  const def = G.turn === 0 ? "R" : "L";
+  if(dmg)     G[def].hp -= dmg;
+  if(selfDmg) G[atk].hp -= selfDmg;
+
+  logLine(selfDmg
+    ? `<b>${C.label}</b> の詠唱は暴発し、反動で <b>${selfDmg}</b> のダメージ`
+    : `<b>${C.label}</b>「${spell.text}」→ <b>${dmg}</b> ダメージ`);
+
+  $("stage").innerHTML = `
+    <div class="verdict">
+      <div class="v-title ${cls}">${label}</div>
+      <div class="v-dmg ${cls} mono-num">${selfDmg ? "−" + selfDmg + " 自傷" : dmg}</div>
+      <div class="land-list">${cards.map((c,i)=>
+        `<span class="land ${land[i]?'ok':'ng'} ${land[i]&&weak&&c.k===weak?'weak':''}">${land[i]?"":"✕ "}${c.t}</span>`).join("")}
+        <span class="land tech ${finish?'ok':'ng'}">${finish?"":"✕ "}${C.tech.t}</span></div>
+      ${weak && cards.some((c,i)=>land[i]&&c.k===weak) ? `<div class="acc-row"><span style="color:var(--ember)">弱点「${weak}」を突いた</span>
+        <span style="flex:1"></span><span class="mono-num" style="color:var(--ember)">威力2倍</span></div>` : ""}
+      ${finish ? `<div class="acc-row"><span style="color:var(--gold)">決め台詞が通った</span>
+        <span style="flex:1"></span><span class="mono-num" style="color:var(--gold)">×1.5</span></div>` : ""}
+      ${draws ? `<div class="acc-row"><span>引き直し ${draws} 回</span><span style="flex:1"></span>
+        <span class="mono-num">×${mult.toFixed(1)}</span></div>` : ""}
+      <div class="v-heard">聞こえた言葉：<b>${escapeHtml(res.heard.trim() || "（聞き取れなかった）")}</b></div>
+    </div>
+    <button class="btn gold" style="margin-top:16px" id="nextBtn">つづける</button>`;
+
+  const el = $(def === "R" ? "fR" : "fL");
+  el.classList.add("shake"); setTimeout(()=>el.classList.remove("shake"), 420);
+  paint();
+  $("nextBtn").onclick = afterTurn;
+}
+
 /* ---- ターン終了後 ---- */
 function afterTurn(){
   // 決着チェック
@@ -1489,8 +1448,8 @@ function afterTurn(){
     if(G.stage >= ENEMIES.length) return gameOver(true, "");
     setEnemy(G.stage);
     logLine(`✨ 敵を打ち倒した！ 第${G.stage+1}の試練 ── <b>${G.R.name}</b> が現れた！`);
-    G.L.hp = Math.min(G.L.max, G.L.hp + 25);
-    logLine("🌿 休息をとり、HPが 25 回復した");
+    G.L.hp = Math.min(G.L.max, G.L.hp + 30);
+    logLine("🌿 休息をとり、HPが 30 回復した");
     paint(); return showPick();
   }
   if(G.L.hp <= 0){
@@ -1695,6 +1654,14 @@ function craftPass(){
 }
 
 function craftHand(){
+  C.label  = C.players[curPlayer()].name;
+  C.onDone = craftAfterChant;
+  C.tech   = makeTech();
+  dealHand();
+}
+
+// 戦闘・呪文づくりで共通の配り方
+function dealHand(){
   C.deck = shuffle(CARDS);
   C.hand = C.deck.splice(0, 10);
   ["呼","飾","命"].forEach(k => {
@@ -1718,10 +1685,9 @@ function shuffle(a){
 
 /* ---- 引き直し（3回まで・粘るほど威力が落ちる） ---- */
 function craftRenderDraw(){
-  const p = C.players[curPlayer()];
   const n = C.discard.length;
   $("stage").innerHTML = `
-    <div class="sect-label">${escapeHtml(p.name)}／決め台詞：${C.tech.t}</div>
+    <div class="sect-label">${escapeHtml(C.label)}／決め台詞：${C.tech.t}${G.mode==="solo"&&G.R.weak?`／<b style="color:var(--ember)">弱点 ${G.R.weak}</b>`:""}</div>
     <div class="draw-note">
       いらない札を選んで引き直せる。<b>あと ${MAX_DRAWS - C.draws} 回</b>。<br>
       いまの威力は <b>×${curMult().toFixed(1)}</b>${C.draws < MAX_DRAWS
@@ -1737,7 +1703,13 @@ function craftRenderDraw(){
     <div class="opt-row">
       <button class="btn ghost" onclick="craftKeepAll()">このまま組む</button>
       <button class="btn gold" ${n?"":"disabled"} onclick="craftRedraw()">${n}枚 引き直す（×${DRAW_MULT[C.draws+1].toFixed(1)}）</button>
-    </div>`;
+    </div>
+    ${(() => {
+      const o = [];
+      if(TTS && G.mode === "solo") o.push(`<button class="btn ghost" onclick="toggleVoice()">${voiceOn ? "🔊 敵の声：ON" : "🔇 敵の声：OFF"}</button>`);
+      if(!G.typing && SR)          o.push(`<button class="btn ghost" onclick="toTyping()">🎤 声が出せない → タイピング</button>`);
+      return o.length ? `<div class="opt-row">${o.join("")}</div>` : "";
+    })()}`;
 }
 function craftToss(i){
   const at = C.discard.indexOf(i);
@@ -1757,12 +1729,11 @@ function craftRedraw(){
 }
 
 function craftRenderHand(){
-  const p = C.players[curPlayer()];
   const line = C.chosen.map(i=>C.hand[i].t).join("、");
   const raw  = C.chosen.reduce((s,i)=>s+C.hand[i].p, 0);
   const full = C.chosen.length >= MAX_PICK;
   $("stage").innerHTML = `
-    <div class="sect-label">${escapeHtml(p.name)}／決め台詞：${C.tech.t}</div>
+    <div class="sect-label">${escapeHtml(C.label)}／決め台詞：${C.tech.t}${G.mode==="solo"&&G.R.weak?`／<b style="color:var(--ember)">弱点 ${G.R.weak}</b>`:""}</div>
     <div class="craft-line">${line
       ? `${line}<span class="tech-tail"> ── ${C.tech.t}！</span>`
       : "<span style='opacity:.4'>使いたい札を、唱える順に選べ</span>"}</div>
@@ -1799,7 +1770,7 @@ function craftChant(){
     alt : [],
   };
   const mult = curMult();
-  G.chantDone = res => craftAfterChant(res, spell, cards, mult, C.draws);
+  G.chantDone = res => C.onDone(res, spell, cards, mult, C.draws);
   startChant(spell);
 }
 
