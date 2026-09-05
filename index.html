@@ -107,7 +107,10 @@ h1,h2,h3{margin:0}
 .bar>i{display:block;height:100%;border-radius:4px;transition:width .45s cubic-bezier(.2,.9,.3,1)}
 .hp-me>i{background:linear-gradient(90deg,#4fd18b,#7ee0a0)}
 .hp-foe>i{background:linear-gradient(90deg,#c0392b,#ff7a52)}
-.f-emoji{font-size:22px;line-height:1}
+.f-art{width:30px;height:30px;display:block;flex:none}
+.f-art svg{width:100%;height:100%;display:block}
+.foe-portrait{width:86px;height:86px;margin:0 auto 8px;filter:drop-shadow(0 8px 20px rgba(255,90,60,.4))}
+.foe-portrait svg{width:100%;height:100%;display:block}
 
 /* ---- 呪文選択 ---- */
 .sect-label{font-size:11.5px;letter-spacing:.22em;color:var(--gold-dim);font-weight:700;margin:0 0 9px 2px}
@@ -282,12 +285,12 @@ h1,h2,h3{margin:0}
 <section id="battle" class="hide">
   <div class="fighters">
     <div class="fighter" id="fL">
-      <div class="f-top"><span class="f-emoji" id="eL">🧙</span><span class="f-hp"><span id="hpLv">100</span>/<span id="hpLm">100</span></span></div>
+      <div class="f-top"><span class="f-art" id="eL"></span><span class="f-hp"><span id="hpLv">100</span>/<span id="hpLm">100</span></span></div>
       <div class="f-name" id="nL">あなた</div>
       <div class="bar hp-me"><i id="barL" style="width:100%"></i></div>
     </div>
     <div class="fighter" id="fR">
-      <div class="f-top"><span class="f-emoji" id="eR">🐉</span><span class="f-hp"><span id="hpRv">100</span>/<span id="hpRm">100</span></span></div>
+      <div class="f-top"><span class="f-art" id="eR"></span><span class="f-hp"><span id="hpRv">100</span>/<span id="hpRm">100</span></span></div>
       <div class="f-name" id="nR">敵</div>
       <div class="bar hp-foe"><i id="barR" style="width:100%"></i></div>
     </div>
@@ -358,22 +361,140 @@ const SPELLS = [
         read:"だいちのみゃくどうよ、わがこえにこたえ、てんをうがつやりとなれ", alt:[]},
   {r:3, text:"闇より出でし者よ、汝の名において、全てを無に還せ",
         read:"やみよりいでしものよ、なんじのなにおいて、すべてをむにかえせ", alt:[]},
+
+  // ---- 追加ぶん：階位1 ----
+  {r:1, text:"水よ、跳ねろ",         read:"みずよ、はねろ",           alt:[]},
+  {r:1, text:"土よ、固まれ",         read:"つちよ、かたまれ",         alt:[]},
+  {r:1, text:"刃よ、研ぎ澄ませ",     read:"やいばよ、とぎすませ",     alt:[]},
+  {r:1, text:"影よ、忍び寄れ",       read:"かげよ、しのびよれ",       alt:[]},
+  {r:1, text:"霧よ、立ち込めろ",     read:"きりよ、たちこめろ",       alt:[]},
+  {r:1, text:"祈りよ、届け",         read:"いのりよ、とどけ",         alt:[]},
+
+  // ---- 追加ぶん：階位2 ----
+  {r:2, text:"灼熱の渦よ、我が前に立つ者を焼け", read:"しゃくねつのうずよ、わがまえにたつものをやけ", alt:[]},
+  {r:2, text:"静かなる湖よ、鏡となりて欺け",     read:"しずかなるみずうみよ、かがみとなりてあざむけ", alt:[]},
+  {r:2, text:"千の刃よ、雨のごとく降れ",         read:"せんのやいばよ、あめのごとくふれ",             alt:[]},
+  {r:2, text:"月の光よ、我が傷を塞げ",           read:"つきのひかりよ、わがきずをふさげ",             alt:[]},
+  {r:2, text:"大樹の根よ、絡めて離すな",         read:"たいじゅのねよ、からめてはなすな",             alt:[]},
+  {r:2, text:"灰色の風よ、記憶を奪え",           read:"はいいろのかぜよ、きおくをうばえ",             alt:[]},
+
+  // ---- 追加ぶん：階位3 ----
+  {r:3, text:"始まりの言葉を思い出せ、世界よ、我が声に従え",
+        read:"はじまりのことばをおもいだせ、せかいよ、わがこえにしたがえ", alt:[]},
+  {r:3, text:"四つの元素よ、円環を閉じよ、我が掌に集え",
+        read:"よっつのげんそよ、えんかんをとじよ、わがてのひらにつどえ", alt:[]},
+  {r:3, text:"眠れる巨人よ、目を開け、地平を踏み鳴らせ",
+        read:"ねむれるきょじんよ、めをあけ、ちへいをふみならせ", alt:[]},
+  {r:3, text:"終焉を告げる鐘よ、七度鳴り響け",
+        read:"しゅうえんをつげるかねよ、ななたびなりひびけ", alt:[]},
+  {r:3, text:"光と闇の境にて、我は理を書き換える",
+        read:"ひかりとやみのさかいにて、われはことわりをかきかえる", alt:[]},
+  {r:3, text:"星々の名を呼ぶ。来たれ、天の火よ",
+        read:"ほしぼしのなをよぶ。きたれ、てんのひよ", alt:[]},
 ];
 
+/* =========================================================
+   キャラクター（SVGで描いているので拡大してもボケない）
+   ========================================================= */
+const ART = {
+  wizard1: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="w1" x1="0" y1="0" x2=".35" y2="1">
+      <stop offset="0" stop-color="#bda8ff"/><stop offset="1" stop-color="#3a2382"/></linearGradient></defs>
+    <rect x="9" y="20" width="3" height="40" rx="1.5" fill="#6d5133"/>
+    <circle cx="10.5" cy="16" r="8" fill="#e8c46a" opacity=".18"/>
+    <circle cx="10.5" cy="16" r="4.2" fill="#f5dd93"/>
+    <path d="M32 42 C21 42 15 48 13 60 L51 60 C49 48 43 42 32 42Z" fill="url(#w1)"/>
+    <path d="M22 33 C22 27 26 24 32 24 C38 24 42 27 42 33 C42 40 38 44 32 44 C26 44 22 40 22 33Z" fill="#0d0820"/>
+    <path d="M25 39 C26 48 29 52 32 52 C35 52 38 48 39 39 C36 42.5 28 42.5 25 39Z" fill="#ddd7ee"/>
+    <circle cx="27.6" cy="34" r="2.2" fill="#ffe9b0"/>
+    <circle cx="36.4" cy="34" r="2.2" fill="#ffe9b0"/>
+    <path d="M32 2 C34.5 9 39 16.5 45 22 C40 26 24 26 19 22 C25 16.5 29.5 9 32 2Z" fill="url(#w1)"/>
+    <path d="M17 21 C24 27 40 27 47 21 L48 24.5 C40 30 24 30 16 24.5Z" fill="#5b3fc4"/>
+    <circle cx="32" cy="13" r="1.7" fill="#ffe9b0" opacity=".92"/></svg>`,
+
+  wizard2: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="w2" x1="0" y1="0" x2=".35" y2="1">
+      <stop offset="0" stop-color="#8fe3d6"/><stop offset="1" stop-color="#175a63"/></linearGradient></defs>
+    <rect x="9" y="20" width="3" height="40" rx="1.5" fill="#5b5133"/>
+    <circle cx="10.5" cy="16" r="8" fill="#6ec9f0" opacity=".18"/>
+    <circle cx="10.5" cy="16" r="4.2" fill="#b6ecff"/>
+    <path d="M32 42 C21 42 15 48 13 60 L51 60 C49 48 43 42 32 42Z" fill="url(#w2)"/>
+    <path d="M22 33 C22 27 26 24 32 24 C38 24 42 27 42 33 C42 40 38 44 32 44 C26 44 22 40 22 33Z" fill="#06181c"/>
+    <path d="M25 39 C26 48 29 52 32 52 C35 52 38 48 39 39 C36 42.5 28 42.5 25 39Z" fill="#ddd7ee"/>
+    <circle cx="27.6" cy="34" r="2.2" fill="#d6f6ff"/>
+    <circle cx="36.4" cy="34" r="2.2" fill="#d6f6ff"/>
+    <path d="M32 2 C34.5 9 39 16.5 45 22 C40 26 24 26 19 22 C25 16.5 29.5 9 32 2Z" fill="url(#w2)"/>
+    <path d="M17 21 C24 27 40 27 47 21 L48 24.5 C40 30 24 30 16 24.5Z" fill="#2b8a92"/>
+    <circle cx="32" cy="13" r="1.7" fill="#d6f6ff" opacity=".92"/></svg>`,
+
+  slime: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs><radialGradient id="sl" cx=".38" cy=".28">
+      <stop offset="0" stop-color="#addf70"/><stop offset="1" stop-color="#37701f"/></radialGradient></defs>
+    <path d="M32 22 C46 22 56 38 56 48 C56 55.5 47 58.5 32 58.5 C17 58.5 8 55.5 8 48 C8 38 18 22 32 22Z" fill="url(#sl)"/>
+    <path d="M13 50 C16 50 17 53 16 57 C14.5 60 11.5 58.5 12 55Z" fill="#37701f"/>
+    <path d="M51 49 C54 49.5 54.5 53 53 55.5 C51 57 49.5 54.5 50 51Z" fill="#37701f"/>
+    <ellipse cx="21" cy="32" rx="6.5" ry="4" fill="#fff" opacity=".26" transform="rotate(-24 21 32)"/>
+    <ellipse cx="25" cy="42" rx="3.1" ry="4.2" fill="#122a08"/>
+    <ellipse cx="39" cy="42" rx="3.1" ry="4.2" fill="#122a08"/>
+    <circle cx="26.2" cy="40.4" r="1.05" fill="#e2ffc4"/>
+    <circle cx="40.2" cy="40.4" r="1.05" fill="#e2ffc4"/>
+    <path d="M27 50 C29.5 52.5 34.5 52.5 37 50" stroke="#122a08" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+    <path d="M19 21.5 L23.5 11 L28 17.5 L32 8 L36 17.5 L40.5 11 L45 21.5Z" fill="#e8c46a"/>
+    <rect x="19" y="20" width="26" height="4.2" rx="1.6" fill="#c19640"/>
+    <circle cx="32" cy="15" r="1.7" fill="#ff6b6b"/></svg>`,
+
+  golem: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="go" x1="0" y1="0" x2=".3" y2="1">
+      <stop offset="0" stop-color="#9895ab"/><stop offset="1" stop-color="#3b3850"/></linearGradient></defs>
+    <path d="M2 60 L6 45 C6 41 12 39 18 39 L46 39 C52 39 58 41 58 45 L62 60Z" fill="#4a4763"/>
+    <path d="M14 41 L11 60" stroke="#312f47" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M50 41 L53 60" stroke="#312f47" stroke-width="2.2" stroke-linecap="round"/>
+    <rect x="26" y="30" width="12" height="11" fill="#3d3a53"/>
+    <path d="M20 5 L44 5 L50 17 L46 31 L32 38 L18 31 L14 17Z" fill="url(#go)"/>
+    <path d="M15 18 L49 18 L47 23 L17 23Z" fill="#2f2d45"/>
+    <path d="M19 19.5 L28 18.5 L28 23 L19.5 23Z" fill="#ffab4d"/>
+    <path d="M45 19.5 L36 18.5 L36 23 L44.5 23Z" fill="#ffab4d"/>
+    <path d="M24 27 L40 27 L38 32.5 L26 32.5Z" fill="#2b2940"/>
+    <path d="M28 27 L28 32.5 M32 27 L32 32.5 M36 27 L36 32.5" stroke="#615e7d" stroke-width="1.1"/>
+    <path d="M32 5 L29.5 12 L34 16.5" stroke="#26243a" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+    <path d="M45.5 9 L41 13" stroke="#26243a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M17 27 L21.5 29.5" stroke="#26243a" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>`,
+
+  dragon: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="dr" x1="0" y1="0" x2=".3" y2="1">
+      <stop offset="0" stop-color="#8b5297"/><stop offset="1" stop-color="#26112f"/></linearGradient></defs>
+    <path d="M23 19.5 C18 16 11 9.5 8 2.5 C15 4.5 23 11 26.5 18Z" fill="#dcc79c"/>
+    <path d="M23 19.5 C19 16.5 13.5 11.5 10.5 6.5 C15.5 9.5 21 14 25 18.5Z" fill="#b39d76"/>
+    <path d="M41 19.5 C46 16 53 9.5 56 2.5 C49 4.5 41 11 37.5 18Z" fill="#dcc79c"/>
+    <path d="M41 19.5 C45 16.5 50.5 11.5 53.5 6.5 C48.5 9.5 43 14 39 18.5Z" fill="#b39d76"/>
+    <path d="M32 7 C42.5 7 49.5 14.5 49.5 25.5 C49.5 32.5 46 38 42 42 L38 52 C36.5 56 33.5 58.5 32 58.5 C30.5 58.5 27.5 56 26 52 L22 42 C18 38 14.5 32.5 14.5 25.5 C14.5 14.5 21.5 7 32 7Z" fill="url(#dr)"/>
+    <path d="M26 43 L38 43 L37 52 C36 56 33.5 58.5 32 58.5 C30.5 58.5 28 56 27 52Z" fill="#4b2659"/>
+    <ellipse cx="29" cy="48.5" rx="1.35" ry="1.9" fill="#150819"/>
+    <ellipse cx="35" cy="48.5" rx="1.35" ry="1.9" fill="#150819"/>
+    <path d="M17.5 21.5 C21.5 17.5 27 17.5 30 21.5 L29 24.5 C26 21.5 21 21.5 18.5 24.5Z" fill="#5f3569"/>
+    <path d="M46.5 21.5 C42.5 17.5 37 17.5 34 21.5 L35 24.5 C38 21.5 43 21.5 45.5 24.5Z" fill="#5f3569"/>
+    <path d="M18 27.5 C21.5 24 27 25 29 29 C25.5 31.5 20.5 31 18 27.5Z" fill="#ff8e4e"/>
+    <path d="M46 27.5 C42.5 24 37 25 35 29 C38.5 31.5 43.5 31 46 27.5Z" fill="#ff8e4e"/>
+    <ellipse cx="23.5" cy="28" rx="1.2" ry="2.8" fill="#2a0d00"/>
+    <ellipse cx="40.5" cy="28" rx="1.2" ry="2.8" fill="#2a0d00"/>
+    <path d="M26.6 44 L28.2 51.5 L29.9 44Z" fill="#f4e9d4"/>
+    <path d="M37.4 44 L35.8 51.5 L34.1 44Z" fill="#f4e9d4"/></svg>`,
+};
+
 const ENEMIES = [
-  {name:"泥のスライム王", emoji:"🟢", hp:110, atk:[7,13], voice:{pitch:0.85, rate:0.92}, spells:[
+  {name:"泥のスライム王", art:"slime", hp:110, atk:[7,13], voice:{pitch:0.90, rate:0.95}, spells:[
     "ねばつく泥よ、絡めとれ",
     "沼の底より、湧き出でよ",
     "ぶくり、ぶくりと沈めてやろう",
     "溶かせ、骨まで溶かせ",
   ]},
-  {name:"石像の番人", emoji:"🗿", hp:190, atk:[11,19], voice:{pitch:0.35, rate:0.72}, spells:[
+  {name:"石像の番人", art:"golem", hp:190, atk:[11,19], voice:{pitch:0.40, rate:0.74, drone:55}, spells:[
     "動かざるもの、砕けざるもの",
     "千年の重みを、その身に受けよ",
     "石の理よ、我が拳となれ",
     "この門を通した者は、まだいない",
   ]},
-  {name:"古竜ヴェルグリンド", emoji:"🐉", hp:300, atk:[15,26], voice:{pitch:0.15, rate:0.78}, spells:[
+  {name:"古竜ヴェルグリンド", art:"dragon", hp:300, atk:[15,26], voice:{pitch:0.28, rate:0.76, drone:41}, spells:[
     "我が喉より溢れよ、滅びの息吹",
     "灰となれ。名も、声も残さず",
     "竜語をもって命ずる ── 燃え尽きろ",
@@ -412,6 +533,7 @@ const KANA_MAP = {
   "静寂":"せいじゃく", "牢獄":"ろうごく", "凍える":"こごえる",
   "脈動":"みゃくどう", "穿つ":"うがつ", "打つ":"うつ", "槍":"やり",
   "汝":"なんじ", "還せ":"かえせ", "返せ":"かえせ", "帰せ":"きせ",
+  "止めて":"とめて", "留めて":"とめて",
   // 中級まわり
   "焼き払え":"やきはらえ", "凍てつく":"いてつく", "吹雪":"ふぶき",
   "閉ざせ":"とざせ", "全て":"すべて", "疾風":"はやて", "駆け抜けろ":"かけぬけろ",
@@ -423,6 +545,22 @@ const KANA_MAP = {
   "吹き荒れろ":"ふきあれろ", "飲み込め":"のみこめ", "呑み込め":"のみこめ",
   "灯れ":"ともれ", "点れ":"ともれ", "燈れ":"ともれ",
   "落ちろ":"おちろ", "放て":"はなて", "守れ":"まもれ", "出でし":"いでし",
+  // 追加ぶんの語彙
+  "研ぎ澄ませ":"とぎすませ", "立ち込めろ":"たちこめろ", "忍び寄れ":"しのびよれ",
+  "固まれ":"かたまれ", "跳ねろ":"はねろ", "届け":"とどけ", "祈り":"いのり",
+  "灼熱":"しゃくねつ", "静かなる":"しずかなる", "欺け":"あざむけ", "鏡":"かがみ",
+  "大樹":"たいじゅ", "絡めて":"からめて", "離すな":"はなすな", "灰色":"はいいろ",
+  "記憶":"きおく", "奪え":"うばえ", "塞げ":"ふさげ", "湖":"みずうみ",
+  "思い出せ":"おもいだせ", "始まり":"はじまり", "言葉":"ことば", "世界":"せかい",
+  "従え":"したがえ", "四つ":"よっつ", "元素":"げんそ", "円環":"えんかん",
+  "閉じよ":"とじよ", "掌":"てのひら", "集え":"つどえ", "眠れる":"ねむれる",
+  "巨人":"きょじん", "地平":"ちへい", "踏み鳴らせ":"ふみならせ",
+  "終焉":"しゅうえん", "告げる":"つげる", "鐘":"かね", "七度":"ななたび",
+  "鳴り響け":"なりひびけ", "書き換える":"かきかえる", "境":"さかい", "理":"ことわり",
+  "星々":"ほしぼし", "来たれ":"きたれ", "呼ぶ":"よぶ", "渦":"うず",
+  "水":"みず", "土":"つち", "影":"かげ", "霧":"きり", "月":"つき",
+  "根":"ね", "前":"まえ", "立つ":"たつ", "焼け":"やけ", "降れ":"ふれ",
+  "千":"せん", "目":"め", "開け":"あけ",
   // 単字（長い語より後に当たるよう、置換は長い順に行う）
   "我が":"わが", "我":"われ", "私":"わたし",
   "意志":"いし", "意思":"いし", "医師":"いし", "石":"いし",
@@ -489,8 +627,8 @@ const G = {
   mode:"solo",
   turn:0,            // 0 = 左（プレイヤー1）, 1 = 右
   stage:0,
-  L:{name:"あなた", emoji:"🧙", hp:100, max:100},
-  R:{name:"", emoji:"", hp:0, max:0},
+  L:{name:"あなた", art:"wizard1", hp:100, max:100},
+  R:{name:"", art:"slime", hp:0, max:0},
   typing:false,
   busy:false,
   stats:{turns:0, accSum:0, crit:0},
@@ -518,22 +656,71 @@ function loadVoice(){
 }
 if(TTS){ loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
 
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+/* 読み上げは一息で流すと完全な棒読みになる。句読点で区切って一節ずつ
+   投げ、節が進むほど低く・遅くしていくと「溜めて言い切る」感じが出る。
+   合成音声そのものの質は変えられないので、間の取り方で演技をつくる。 */
 function speakFoe(text, profile, onend){
   if(!TTS || !voiceOn) return false;
+  const p = profile || {pitch:1, rate:1};
   try{
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "ja-JP";
-    if(jaVoice) u.voice = jaVoice;
-    u.pitch  = profile ? profile.pitch : 1;
-    u.rate   = profile ? profile.rate  : 1;
-    u.onend   = onend;
-    u.onerror = onend;   // 喋れなかった時も進行は止めない
-    speechSynthesis.speak(u);
+    const parts = text.split(/[、。！?]/).map(s=>s.trim()).filter(Boolean);
+    if(!parts.length) return false;
+
+    parts.forEach((part, i) => {
+      const last = (i === parts.length - 1);
+      const u = new SpeechSynthesisUtterance(last ? part + "。" : part + "、");
+      u.lang = "ja-JP";
+      if(jaVoice) u.voice = jaVoice;
+      // 言い切りに向けて少しずつ落として、最後の一節を重くする
+      u.pitch = clamp(p.pitch - i * 0.05 - (last ? 0.10 : 0), 0, 2);
+      u.rate  = clamp(p.rate  * (last ? 0.84 : 1 - i * 0.04), 0.1, 10);
+      if(last){ u.onend = () => { stopDrone(); onend(); };
+                u.onerror = () => { stopDrone(); onend(); }; }
+      speechSynthesis.speak(u);
+    });
+    if(p.drone) startDrone(p.drone);
     return true;
   }catch(e){ return false; }
 }
-function stopSpeech(){ if(TTS){ try{ speechSynthesis.cancel(); }catch(e){} } }
+function stopSpeech(){
+  stopDrone();
+  if(TTS){ try{ speechSynthesis.cancel(); }catch(e){} }
+}
+
+/* 重い敵の声の下に低い唸りを重ねる。合成音声の平坦さが埋もれて、
+   「機械が喋っている」感じがかなり薄れる。 */
+let droneNodes = null;
+function startDrone(freq){
+  stopDrone();
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), o2 = actx.createOscillator();
+    const f = actx.createBiquadFilter(), g = actx.createGain();
+    o.type  = "sawtooth"; o.frequency.value  = freq;
+    o2.type = "sine";     o2.frequency.value = freq * 0.5;
+    f.type = "lowpass";   f.frequency.value  = freq * 5;
+    g.gain.setValueAtTime(0.0001, actx.currentTime);
+    g.gain.linearRampToValueAtTime(0.05, actx.currentTime + 0.6);
+    o.connect(f); o2.connect(f); f.connect(g); g.connect(actx.destination);
+    o.start(); o2.start();
+    droneNodes = {o, o2, g};
+  }catch(e){}
+}
+function stopDrone(){
+  if(!droneNodes || !actx) { droneNodes = null; return; }
+  const {o, o2, g} = droneNodes;
+  droneNodes = null;
+  try{
+    const t = actx.currentTime;
+    g.gain.cancelScheduledValues(t);
+    g.gain.setValueAtTime(g.gain.value, t);
+    g.gain.linearRampToValueAtTime(0.0001, t + 0.35);
+    o.stop(t + 0.4); o2.stop(t + 0.4);
+  }catch(e){}
+}
 
 function toggleVoice(){
   voiceOn = !voiceOn;
@@ -581,9 +768,9 @@ function startGame(mode){
   G.mode = mode;
   G.stats = {turns:0, accSum:0, crit:0};
   G.stage = 0;
-  G.L = {name: mode==="duel" ? "術士 1" : "あなた", emoji:"🧙", hp:100, max:100};
+  G.L = {name: mode==="duel" ? "術士 1" : "あなた", art:"wizard1", hp:100, max:100};
   if(mode==="duel"){
-    G.R = {name:"術士 2", emoji:"🧝", hp:100, max:100};
+    G.R = {name:"術士 2", art:"wizard2", hp:100, max:100};
   }else{
     setEnemy(0);
   }
@@ -598,12 +785,12 @@ function startGame(mode){
 
 function setEnemy(i){
   const e = ENEMIES[i];
-  G.R = {name:e.name, emoji:e.emoji, hp:e.hp, max:e.hp, atk:e.atk, spells:e.spells, voice:e.voice};
+  G.R = {name:e.name, art:e.art, hp:e.hp, max:e.hp, atk:e.atk, spells:e.spells, voice:e.voice};
 }
 
 function paint(){
-  $("nL").textContent = G.L.name; $("eL").textContent = G.L.emoji;
-  $("nR").textContent = G.R.name; $("eR").textContent = G.R.emoji;
+  $("nL").textContent = G.L.name; $("eL").innerHTML = ART[G.L.art] || "";
+  $("nR").textContent = G.R.name; $("eR").innerHTML = ART[G.R.art] || "";
   $("hpLv").textContent = Math.max(0,Math.round(G.L.hp)); $("hpLm").textContent = G.L.max;
   $("hpRv").textContent = Math.max(0,Math.round(G.R.hp)); $("hpRm").textContent = G.R.max;
   $("barL").style.width = Math.max(0, G.L.hp/G.L.max*100) + "%";
@@ -665,9 +852,29 @@ let forceStop = false, restarts = 0;
 // 判定は「各録音の結果」と「全部つなげたもの」の中で一番良かったものを採る。
 let sessionTexts = [], curText = "";
 
+// 録音をまたいで分断された場合につなげ直す。ただし Android は前の言葉を
+// 丸ごと言い直してくるので、すでに含まれている分は捨てる。
+// 「時」と「とき」のような表記ゆれも同じ言葉とみなすため、読みで比べる。
+function joinSessions(list){
+  const kept = [];
+  for(const t of list){
+    const k = kana(t);
+    if(!k) continue;
+    if(kept.some(o => kana(o).includes(k))) continue;          // 既出なら捨てる
+    for(let i = kept.length - 1; i >= 0; i--){                 // 前のを含むなら差し替える
+      if(k.includes(kana(kept[i]))) kept.splice(i, 1);
+    }
+    kept.push(t.trim());
+  }
+  return kept.join(" ");
+}
+
 function candidateTexts(){
   const all = sessionTexts.concat([curText]).filter(t => t && t.trim());
-  if(all.length > 1) all.push(all.join(""));   // 呪文が録音をまたいで分断された場合の保険
+  if(all.length > 1){
+    const joined = joinSessions(all);
+    if(joined) all.push(joined);
+  }
   return all;
 }
 function bestHeard(){
@@ -943,7 +1150,8 @@ function enemyTurn(){
 
   $("stage").innerHTML = `
     <div class="verdict">
-      <div class="chant-label">${e.emoji} ${e.name}の詠唱</div>
+      <div class="foe-portrait">${ART[e.art] || ""}</div>
+      <div class="chant-label">${e.name}の詠唱</div>
       <div class="foe-chant">${sp}</div>
       <div class="foe-body" id="foeBody"><span class="dots"><i></i><i></i><i></i></span></div>
     </div>`;
