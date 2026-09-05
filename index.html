@@ -224,23 +224,30 @@ h1,h2,h3{margin:0}
   border:1px solid rgba(232,196,106,.18);
 }
 .craft-meta{font-size:11.5px;color:var(--text-dim);text-align:right;margin:6px 2px 10px}
-.hand{display:flex;flex-direction:column;gap:7px}
+.hand{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .wcard{
-  position:relative;display:flex;align-items:center;gap:9px;
-  padding:11px 13px;border-radius:10px;text-align:left;cursor:pointer;
+  position:relative;display:flex;flex-direction:column;align-items:stretch;gap:3px;
+  padding:9px 10px 8px;border-radius:10px;text-align:left;cursor:pointer;
   background:linear-gradient(135deg,rgba(155,124,245,.14),rgba(40,28,90,.5));
   border:1px solid var(--line);color:var(--text);font-family:inherit;
+  transition:transform .08s, border-color .15s, filter .15s, opacity .15s;
 }
-.wcard.picked{border-color:var(--gold);background:linear-gradient(135deg,rgba(232,196,106,.22),rgba(90,60,20,.4))}
-.card-k{font-size:10.5px;font-weight:800;padding:2.5px 7px;border-radius:99px;flex:none}
+.wcard:active{transform:translateY(1px)}
+.wcard.picked{border-color:var(--gold);background:linear-gradient(135deg,rgba(232,196,106,.24),rgba(90,60,20,.42))}
+.wcard.tossed{opacity:.34;border-style:dashed;filter:grayscale(.6)}
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.card-k{font-size:10px;font-weight:800;padding:2px 6px;border-radius:99px;flex:none;line-height:1.4}
 .k呼{background:rgba(110,201,240,.18);color:var(--ice);border:1px solid rgba(110,201,240,.4)}
 .k飾{background:rgba(155,124,245,.2);color:#b9a3ff;border:1px solid rgba(155,124,245,.45)}
 .k命{background:rgba(255,122,82,.18);color:var(--ember);border:1px solid rgba(255,122,82,.45)}
-.card-t{flex:1;font-size:15px;font-family:"Yu Mincho",serif;line-height:1.4}
-.card-p{font-size:9px;color:var(--gold-dim);letter-spacing:.1em;flex:none}
+.card-t{font-size:15.5px;font-family:"Yu Mincho","Hiragino Mincho ProN",serif;line-height:1.35}
+.card-r{font-size:10px;color:var(--text-dim);line-height:1.3;letter-spacing:.02em}
+.card-p{font-size:8.5px;color:var(--gold-dim);letter-spacing:.08em;flex:none}
+.draw-note{font-size:12px;color:var(--text-dim);line-height:1.7;margin-bottom:10px}
+.draw-note b{color:var(--gold)}
 .card-no{
-  position:absolute;right:-6px;top:-6px;width:21px;height:21px;border-radius:50%;
-  background:var(--gold);color:#2a1f06;font-size:12px;font-weight:900;
+  position:absolute;right:-5px;top:-5px;width:20px;height:20px;border-radius:50%;
+  background:var(--gold);color:#2a1f06;font-size:11.5px;font-weight:900;
   display:flex;align-items:center;justify-content:center;
 }
 .res-row{background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:8px}
@@ -323,7 +330,7 @@ h1,h2,h3{margin:0}
     </button>
     <button class="btn" onclick="craftSetup()">
       呪文づくり
-      <div class="mode-desc">2〜6人。手札5枚から自分だけの呪文を組んで唱え、投票で競う</div>
+      <div class="mode-desc">2〜6人。手札10枚（引き直しあり）で自分だけの呪文を組んで唱え、投票で競う</div>
     </button>
     <button class="btn" onclick="startGame('duel')">
       ふたり対戦
@@ -336,7 +343,7 @@ h1,h2,h3{margin:0}
       <b>遊びかた</b><br>
       どのモードも、やることは<b>呪文を声に出して唱える</b>こと。<br>
       正確さ × 速さで強さが決まる。噛むと失敗する。<br>
-      <b>呪文づくり</b>は手札5枚から好きな枚数を選んで自分の呪文を組み、みんなの投票で競う。<br>
+      <b>呪文づくり</b>は手札10枚から好きな枚数を選んで自分の呪文を組み、みんなの投票で競う。<br>
       <br>
       🎤 マイクの許可を求められたら「許可」を押してね。<br>
       声が出せない場所なら <b>タイピングモード</b> でも遊べるよ。
@@ -463,46 +470,65 @@ const SPELLS = [
    「強いけど笑いは取れない」「弱いけど票は取れる」の板挟みが狙い。
    ========================================================= */
 const CARDS = [
-  // ── 呼びかけ ──
-  {k:"呼", p:3, t:"闇より出でし者よ",     r:"やみよりいでしものよ"},
-  {k:"呼", p:3, t:"紅蓮の炎よ",           r:"ぐれんのほのおよ"},
-  {k:"呼", p:3, t:"凍てつく吹雪よ",       r:"いてつくふぶきよ"},
-  {k:"呼", p:3, t:"万象を統べる光よ",     r:"ばんしょうをすべるひかりよ"},
-  {k:"呼", p:2, t:"星屑の雨よ",           r:"ほしくずのあめよ"},
-  {k:"呼", p:2, t:"名もなき風よ",         r:"なもなきかぜよ"},
-  {k:"呼", p:2, t:"眠れる大地よ",         r:"ねむれるだいちよ"},
-  {k:"呼", p:1, t:"ぬるいコーヒーよ",     r:"ぬるいこーひーよ"},
-  {k:"呼", p:1, t:"昨日の私よ",           r:"きのうのわたしよ"},
-  {k:"呼", p:1, t:"冷蔵庫の奥の何かよ",   r:"れいぞうこのおくのなにかよ"},
-  {k:"呼", p:1, t:"締切よ",               r:"しめきりよ"},
-  {k:"呼", p:1, t:"平日の朝よ",           r:"へいじつのあさよ"},
+  // ── 呼び（何に呼びかけるか）──
+  {k:"呼", p:3, t:"紅蓮の炎",     r:"ぐれんのほのお"},
+  {k:"呼", p:3, t:"永久の氷",     r:"とわのこおり"},
+  {k:"呼", p:3, t:"蒼き雷",       r:"あおきいかずち"},
+  {k:"呼", p:3, t:"深淵の闇",     r:"しんえんのやみ"},
+  {k:"呼", p:3, t:"聖なる光",     r:"せいなるひかり"},
+  {k:"呼", p:3, t:"古の竜",       r:"いにしえのりゅう"},
+  {k:"呼", p:3, t:"万象",         r:"ばんしょう"},
+  {k:"呼", p:3, t:"終焉",         r:"しゅうえん"},
+  {k:"呼", p:2, t:"星の海",       r:"ほしのうみ"},
+  {k:"呼", p:2, t:"黄昏の風",     r:"たそがれのかぜ"},
+  {k:"呼", p:2, t:"白銀の月",     r:"はくぎんのつき"},
+  {k:"呼", p:2, t:"静寂",         r:"せいじゃく"},
+  {k:"呼", p:2, t:"我が魂",       r:"わがたましい"},
+  {k:"呼", p:2, t:"汝の名",       r:"なんじのな"},
+  {k:"呼", p:1, t:"ぬるいコーヒー", r:"ぬるいこーひー"},
+  {k:"呼", p:1, t:"締切",         r:"しめきり"},
+  {k:"呼", p:1, t:"冷蔵庫の奥",   r:"れいぞうこのおく"},
+  {k:"呼", p:1, t:"月曜日",       r:"げつようび"},
+  {k:"呼", p:1, t:"洗い物",       r:"あらいもの"},
+  {k:"呼", p:1, t:"昨日の私",     r:"きのうのわたし"},
+  {k:"呼", p:1, t:"通知の数",     r:"つうちのかず"},
+  {k:"呼", p:1, t:"推しの尊さ",   r:"おしのとうとさ"},
 
-  // ── 飾り ──
-  {k:"飾", p:3, t:"万象を貫き",           r:"ばんしょうをつらぬき"},
-  {k:"飾", p:3, t:"静寂を切り裂き",       r:"せいじゃくをきりさき"},
-  {k:"飾", p:3, t:"全てを飲み込み",       r:"すべてをのみこみ"},
-  {k:"飾", p:3, t:"時を止めて",           r:"ときをとめて"},
-  {k:"飾", p:2, t:"天地を揺らし",         r:"てんちをゆらし"},
-  {k:"飾", p:2, t:"三日月の名において",   r:"みかづきのなにおいて"},
-  {k:"飾", p:2, t:"誰にも気づかれず",     r:"だれにもきづかれず"},
-  {k:"飾", p:1, t:"そっと寄り添い",       r:"そっとよりそい"},
-  {k:"飾", p:1, t:"なんかいい感じに",     r:"なんかいいかんじに"},
-  {k:"飾", p:1, t:"恐る恐る",             r:"おそるおそる"},
-  {k:"飾", p:1, t:"割と本気で",           r:"わりとほんきで"},
+  // ── 飾り（どう繋ぐか）──
+  {k:"飾", p:3, t:"貫きて",       r:"つらぬきて"},
+  {k:"飾", p:3, t:"渦巻きて",     r:"うずまきて"},
+  {k:"飾", p:3, t:"燃え上がり",   r:"もえあがり"},
+  {k:"飾", p:3, t:"凍てつきて",   r:"いてつきて"},
+  {k:"飾", p:3, t:"砕け散り",     r:"くだけちり"},
+  {k:"飾", p:2, t:"舞い上がり",   r:"まいあがり"},
+  {k:"飾", p:2, t:"忍び寄り",     r:"しのびより"},
+  {k:"飾", p:2, t:"揺らめきて",   r:"ゆらめきて"},
+  {k:"飾", p:2, t:"全力で",       r:"ぜんりょくで"},
+  {k:"飾", p:2, t:"静かに",       r:"しずかに"},
+  {k:"飾", p:1, t:"そっと",       r:"そっと"},
+  {k:"飾", p:1, t:"なんとなく",   r:"なんとなく"},
+  {k:"飾", p:1, t:"恐る恐る",     r:"おそるおそる"},
+  {k:"飾", p:1, t:"割と本気で",   r:"わりとほんきで"},
 
-  // ── 命令 ──
-  {k:"命", p:3, t:"我が敵を焼き払え",     r:"わがてきをやきはらえ"},
-  {k:"命", p:3, t:"世界を凍てつかせろ",   r:"せかいをいてつかせろ"},
-  {k:"命", p:3, t:"無に還れ",             r:"むにかえれ"},
-  {k:"命", p:3, t:"全てを断ち切れ",       r:"すべてをたちきれ"},
-  {k:"命", p:2, t:"跪け",                 r:"ひざまずけ"},
-  {k:"命", p:2, t:"目を覚ませ",           r:"めをさませ"},
-  {k:"命", p:2, t:"この夜を明かせ",       r:"このよるをあかせ"},
-  {k:"命", p:1, t:"ちょっと反省しろ",     r:"ちょっとはんせいしろ"},
-  {k:"命", p:1, t:"今日だけは休め",       r:"きょうだけはやすめ"},
-  {k:"命", p:1, t:"明日も頑張れ",         r:"あしたもがんばれ"},
-  {k:"命", p:1, t:"そこそこ幸せになれ",   r:"そこそこしあわせになれ"},
-  {k:"命", p:1, t:"洗い物をしろ",         r:"あらいものをしろ"},
+  // ── 命（どうしろと言うか）──
+  {k:"命", p:3, t:"焼き払え",     r:"やきはらえ"},
+  {k:"命", p:3, t:"凍てつかせろ", r:"いてつかせろ"},
+  {k:"命", p:3, t:"打ち砕け",     r:"うちくだけ"},
+  {k:"命", p:3, t:"貫け",         r:"つらぬけ"},
+  {k:"命", p:3, t:"無に還れ",     r:"むにかえれ"},
+  {k:"命", p:3, t:"断ち切れ",     r:"たちきれ"},
+  {k:"命", p:3, t:"目覚めよ",     r:"めざめよ"},
+  {k:"命", p:3, t:"顕現せよ",     r:"けんげんせよ"},
+  {k:"命", p:2, t:"跪け",         r:"ひざまずけ"},
+  {k:"命", p:2, t:"消え失せろ",   r:"きえうせろ"},
+  {k:"命", p:2, t:"応えよ",       r:"こたえよ"},
+  {k:"命", p:1, t:"微笑め",       r:"ほほえめ"},
+  {k:"命", p:1, t:"反省しろ",     r:"はんせいしろ"},
+  {k:"命", p:1, t:"休め",         r:"やすめ"},
+  {k:"命", p:1, t:"頑張れ",       r:"がんばれ"},
+  {k:"命", p:1, t:"洗え",         r:"あらえ"},
+  {k:"命", p:1, t:"寝ろ",         r:"ねろ"},
+  {k:"命", p:1, t:"許せ",         r:"ゆるせ"},
 ];
 
 const TOPICS = [
@@ -688,6 +714,15 @@ const KANA_MAP = {
   "根":"ね", "前":"まえ", "立つ":"たつ", "焼け":"やけ", "降れ":"ふれ",
   "千":"せん", "目":"め", "開け":"あけ",
   // 呪文づくりのカード用
+  "蒼き雷":"あおきいかずち", "古の":"いにしえの", "永久":"とわ", "黄昏":"たそがれ",
+  "白銀":"はくぎん", "魂":"たましい", "海":"うみ", "通知":"つうち", "数":"かず",
+  "推し":"おし", "尊さ":"とうとさ", "月曜日":"げつようび",
+  "貫きて":"つらぬきて", "渦巻きて":"うずまきて", "燃え上がり":"もえあがり",
+  "凍てつきて":"いてつきて", "砕け散り":"くだけちり", "舞い上がり":"まいあがり",
+  "忍び寄り":"しのびより", "揺らめきて":"ゆらめきて", "全力":"ぜんりょく",
+  "静かに":"しずかに", "打ち砕け":"うちくだけ", "貫け":"つらぬけ",
+  "消え失せろ":"きえうせろ", "応えよ":"こたえよ", "微笑め":"ほほえめ",
+  "洗え":"あらえ", "寝ろ":"ねろ", "許せ":"ゆるせ", "顕現せよ":"けんげんせよ",
   "冷蔵庫":"れいぞうこ", "そこそこ幸せ":"そこそこしあわせ", "洗い物":"あらいもの",
   "気づかれず":"きづかれず", "切り裂き":"きりさき", "飲み込み":"のみこみ",
   "凍てつかせろ":"いてつかせろ", "断ち切れ":"たちきれ", "目を覚ませ":"めをさませ",
@@ -1433,7 +1468,7 @@ function craftRound(){
     <div class="verdict">
       <div class="sect-label">第 ${C.round} 幕 ／ 全 ${C.rounds} 幕</div>
       <div class="topic-jp">${C.topic}</div>
-      <div class="topic-note">手札5枚から好きな枚数を選んで呪文を組み、声に出して唱えよ<br>全部使わなくてもいい</div>
+      <div class="topic-note">手札10枚。いらない札は1回だけ引き直せる。<br>好きな枚数を選んで呪文を組み、声に出して唱えよ</div>
     </div>
     <button class="btn gold" style="margin-top:18px" onclick="craftPass()">はじめる</button>`;
 }
@@ -1451,22 +1486,63 @@ function craftPass(){
 }
 
 function craftHand(){
-  // 呼びかけ・飾り・命令が1枚ずつは必ず入るようにして、残り2枚は全体から
-  const byKind = k => shuffle(CARDS.filter(c=>c.k===k));
-  const hand = ["呼","飾","命"].map(k => byKind(k)[0]);
-  for(const c of shuffle(CARDS)){
-    if(hand.length >= 5) break;
-    if(!hand.includes(c)) hand.push(c);
-  }
-  C.hand = shuffle(hand);
-  C.chosen = [];
-  craftRenderHand();
+  // 山札から10枚。呼び・飾り・命が1枚も無いと呪文にならないので最低1枚は保証する
+  C.deck = shuffle(CARDS);
+  C.hand = C.deck.splice(0, 10);
+  ["呼","飾","命"].forEach(k => {
+    if(C.hand.some(c => c.k === k)) return;
+    const idx = C.deck.findIndex(c => c.k === k);
+    if(idx < 0) return;
+    C.deck.push(C.hand.pop());
+    C.hand.push(C.deck.splice(idx, 1)[0]);
+  });
+  C.hand = shuffle(C.hand);
+  C.discard = [];
+  C.chosen  = [];
+  C.drawn   = false;
+  craftRenderDraw();
 }
 function shuffle(a){
   a = a.slice();
   for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
 }
+
+/* ---- 引き直し（1回だけ） ---- */
+function craftRenderDraw(){
+  const p = C.players[C.turn];
+  const n = C.discard.length;
+  $("stage").innerHTML = `
+    <div class="sect-label">${escapeHtml(p.name)}／お題：${C.topic}</div>
+    <div class="draw-note">いらない札を選んで引き直せる。<b>引き直しは1回だけ</b>。</div>
+    <div class="hand">${C.hand.map((c,i)=>{
+      const off = C.discard.includes(i);
+      return `<button class="wcard ${off?'tossed':''}" onclick="craftToss(${i})">
+        <span class="card-top"><span class="card-k k${c.k}">${c.k}</span><span class="card-p">${"◆".repeat(c.p)}</span></span>
+        <span class="card-t">${c.t}</span>
+        <span class="card-r">${c.r}</span>
+      </button>`;}).join("")}</div>
+    <div class="opt-row">
+      <button class="btn ghost" onclick="craftKeepAll()">このまま組む</button>
+      <button class="btn gold" ${n?"":"disabled"} onclick="craftRedraw()">${n}枚 引き直す</button>
+    </div>`;
+}
+function craftToss(i){
+  const at = C.discard.indexOf(i);
+  if(at >= 0) C.discard.splice(at, 1); else C.discard.push(i);
+  craftRenderDraw();
+}
+function craftKeepAll(){ C.discard = []; C.drawn = true; craftRenderHand(); }
+function craftRedraw(){
+  const keep = C.hand.filter((_,i)=>!C.discard.includes(i));
+  const need = C.hand.length - keep.length;
+  C.hand = shuffle([...keep, ...C.deck.splice(0, need)]);
+  C.discard = [];
+  C.drawn = true;
+  beep(620,.09); setTimeout(()=>beep(880,.14),70);
+  craftRenderHand();
+}
+
 function craftRenderHand(){
   const p = C.players[C.turn];
   const line = C.chosen.map(i=>C.hand[i].t).join("、");
@@ -1478,9 +1554,9 @@ function craftRenderHand(){
     <div class="hand">${C.hand.map((c,i)=>{
       const at = C.chosen.indexOf(i);
       return `<button class="wcard ${at>=0?'picked':''}" onclick="craftPick(${i})">
-        <span class="card-k k${c.k}">${c.k}</span>
+        <span class="card-top"><span class="card-k k${c.k}">${c.k}</span><span class="card-p">${"◆".repeat(c.p)}</span></span>
         <span class="card-t">${c.t}</span>
-        <span class="card-p">${"◆".repeat(c.p)}</span>
+        <span class="card-r">${c.r}</span>
         ${at>=0?`<span class="card-no">${at+1}</span>`:""}
       </button>`;}).join("")}</div>
     <div class="opt-row">
