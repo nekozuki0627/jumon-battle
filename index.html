@@ -137,8 +137,16 @@ h1,h2,h3{margin:0}
 .chant-text{
   font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
   font-size:23px;line-height:1.62;letter-spacing:.04em;
-  padding:16px 8px;
+  padding:16px 8px 8px;
   text-shadow:0 0 26px rgba(232,196,106,.4);
+}
+.chant-read{
+  font-size:13px;line-height:1.7;color:var(--gold);opacity:.72;
+  letter-spacing:.06em;padding:0 8px 16px;
+}
+.sp-read{
+  font-size:11.5px;line-height:1.6;color:var(--text-dim);
+  letter-spacing:.04em;margin-top:3px;
 }
 .timer{height:5px;border-radius:3px;background:rgba(0,0,0,.4);overflow:hidden;margin:4px 0 16px}
 .timer>i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--ember));width:100%}
@@ -298,38 +306,39 @@ h1,h2,h3{margin:0}
    ========================================================= */
 const SPELLS = [
   // ---- 階位1：基礎呪文 ----
-  {r:1, text:"火よ、灯れ",            yomi:"ひよともれ",              alt:[]},
-  {r:1, text:"氷の刃よ",              yomi:"こおりのやいばよ",        alt:["氷の刃"]},
-  {r:1, text:"風よ、吹き荒れろ",      yomi:"かぜよふきあれろ",        alt:[]},
-  {r:1, text:"光あれ",                yomi:"ひかりあれ",              alt:[]},
-  {r:1, text:"石の壁よ、我を守れ",    yomi:"いしのかべよわれをまもれ",alt:["石の壁よ私を守れ"]},
-  {r:1, text:"雷よ、落ちろ",          yomi:"かみなりよおちろ",        alt:[]},
-  {r:1, text:"闇よ、飲み込め",        yomi:"やみよのみこめ",          alt:[]},
-  {r:1, text:"炎の矢を放て",          yomi:"ほのおのやをはなて",      alt:[]},
+  {r:1, text:"火よ、灯れ",         read:"ひよ、ともれ",           alt:[]},
+  {r:1, text:"氷の刃よ",           read:"こおりのやいばよ",       alt:[]},
+  {r:1, text:"風よ、吹き荒れろ",   read:"かぜよ、ふきあれろ",     alt:[]},
+  {r:1, text:"光あれ",             read:"ひかりあれ",             alt:[]},
+  {r:1, text:"石の壁よ、我を守れ", read:"いしのかべよ、われをまもれ", alt:["いしのかべよわたしをまもれ"]},
+  {r:1, text:"雷よ、落ちろ",       read:"かみなりよ、おちろ",     alt:[]},
+  {r:1, text:"闇よ、飲み込め",     read:"やみよ、のみこめ",       alt:[]},
+  {r:1, text:"炎の矢を放て",       read:"ほのおのやをはなて",     alt:[]},
 
   // ---- 階位2：中級呪文 ----
-  {r:2, text:"紅蓮の炎よ、我が敵を焼き払え",   yomi:"ぐれんのほのおよわがてきをやきはらえ",   alt:["紅蓮の炎よ我が敵を焼き払え"]},
-  {r:2, text:"凍てつく吹雪よ、全てを閉ざせ",   yomi:"いてつくふぶきよすべてをとざせ",         alt:["凍てつく吹雪よ全てを閉ざせ"]},
-  {r:2, text:"疾風の刃よ、駆け抜けろ",         yomi:"はやてのやいばよかけぬけろ",             alt:["疾風の刃よ駆け抜けろ"]},
-  {r:2, text:"雷鳴轟け、天よ裂けろ",           yomi:"らいめいとどろけてんよさけろ",           alt:["雷鳴とどろけ天よ裂けろ"]},
-  {r:2, text:"深淵の闇よ、我に力を貸せ",       yomi:"しんえんのやみよわれにちからをかせ",     alt:["深淵の闇よ私に力を貸せ"]},
-  {r:2, text:"聖なる光よ、傷を癒せ",           yomi:"せいなるひかりよきずをいやせ",           alt:[]},
-  {r:2, text:"大地よ震えろ、敵を砕け",         yomi:"だいちよふるえろてきをくだけ",           alt:[]},
-  {r:2, text:"星屑の雨よ、降り注げ",           yomi:"ほしくずのあめよふりそそげ",             alt:[]},
+  {r:2, text:"紅蓮の炎よ、我が敵を焼き払え", read:"ぐれんのほのおよ、わがてきをやきはらえ", alt:[]},
+  {r:2, text:"凍てつく吹雪よ、全てを閉ざせ", read:"いてつくふぶきよ、すべてをとざせ",       alt:[]},
+  {r:2, text:"疾風の刃よ、駆け抜けろ",       read:"はやてのやいばよ、かけぬけろ",           alt:["しっぷうのやいばよかけぬけろ"]},
+  {r:2, text:"雷鳴轟け、天よ裂けろ",         read:"らいめいとどろけ、てんよさけろ",         alt:[]},
+  {r:2, text:"深淵の闇よ、我に力を貸せ",     read:"しんえんのやみよ、われにちからをかせ",   alt:["しんえんのやみよわたしにちからをかせ"]},
+  {r:2, text:"聖なる光よ、傷を癒せ",         read:"せいなるひかりよ、きずをいやせ",         alt:[]},
+  {r:2, text:"大地よ震えろ、敵を砕け",       read:"だいちよふるえろ、てきをくだけ",         alt:[]},
+  {r:2, text:"星屑の雨よ、降り注げ",         read:"ほしくずのあめよ、ふりそそげ",           alt:[]},
 
   // ---- 階位3：奥義 ----
   {r:3, text:"万象を貫く一条の光よ、我が意志のもとに顕現せよ",
-        yomi:"ばんしょうをつらぬくいちじょうのひかりよわがいしのもとにけんげんせよ", alt:[]},
+        read:"ばんしょうをつらぬくいちじょうのひかりよ、わがいしのもとにけんげんせよ", alt:[]},
   {r:3, text:"業火よ渦巻け、灰燼に帰せ、紅蓮爆炎陣",
-        yomi:"ごうかようずまけかいじんにきせぐれんばくえんじん", alt:["業火よ渦巻け灰塵に帰せ紅蓮爆炎陣"]},
+        read:"ごうかよ うずまけ、かいじんに きせ、ぐれんばくえんじん",
+        alt:["ごうかようずまけかいじんにかえせぐれんばくえんじん"]},
   {r:3, text:"七つの星が巡る時、封印されし竜よ目覚めよ",
-        yomi:"ななつのほしがめぐるときふういんされしりゅうよめざめよ", alt:[]},
+        read:"ななつのほしがめぐるとき、ふういんされしりゅうよめざめよ", alt:[]},
   {r:3, text:"凍える静寂よ、時さえ止めて、絶対零度の牢獄へ",
-        yomi:"こごえるせいじゃくよときさえとめてぜったいれいどのろうごくへ", alt:[]},
+        read:"こごえるせいじゃくよ、ときさえとめて、ぜったいれいどのろうごくへ", alt:[]},
   {r:3, text:"大地の脈動よ、我が声に応え、天を穿つ槍となれ",
-        yomi:"だいちのみゃくどうよわがこえにこたえてんをうがつやりとなれ", alt:[]},
+        read:"だいちのみゃくどうよ、わがこえにこたえ、てんをうがつやりとなれ", alt:[]},
   {r:3, text:"闇より出でし者よ、汝の名において、全てを無に還せ",
-        yomi:"やみよりいでしものよなんじのなにおいてすべてをむにかえせ", alt:[]},
+        read:"やみよりいでしものよ、なんじのなにおいて、すべてをむにかえせ", alt:[]},
 ];
 
 const ENEMIES = [
@@ -348,6 +357,55 @@ function norm(s){
     .replace(/[、。！？!?・「」『』…,.\sー　]/g, "")                        // 記号・空白・長音を除去
     .toLowerCase();
 }
+
+/* ---------------------------------------------------------
+   漢字→読み の変換表
+   音声認識は「業火」を「豪華」、「灰燼」を「廃人」のように
+   音は合っていても違う字で返してくる。文字のまま比べると
+   別物になってしまうので、両側を読みに揃えてから比較する。
+   誤変換されやすい字も同じ読みに寄せてある。
+   --------------------------------------------------------- */
+const KANA_MAP = {
+  // 奥義まわり
+  "絶対零度":"ぜったいれいど", "爆炎陣":"ばくえんじん", "爆炎":"ばくえん",
+  "業火":"ごうか", "豪華":"ごうか", "劫火":"ごうか",
+  "灰燼":"かいじん", "灰塵":"かいじん", "廃人":"はいじん", "会心":"かいしん",
+  "紅蓮":"ぐれん", "渦巻け":"うずまけ", "渦巻":"うずま",
+  "万象":"ばんしょう", "貫く":"つらぬく", "一条":"いちじょう",
+  "顕現":"けんげん", "権限":"けんげん",
+  "封印":"ふういん", "目覚めよ":"めざめよ", "巡る":"めぐる", "七つ":"ななつ",
+  "静寂":"せいじゃく", "牢獄":"ろうごく", "凍える":"こごえる",
+  "脈動":"みゃくどう", "穿つ":"うがつ", "打つ":"うつ", "槍":"やり",
+  "汝":"なんじ", "還せ":"かえせ", "返せ":"かえせ", "帰せ":"きせ",
+  // 中級まわり
+  "焼き払え":"やきはらえ", "凍てつく":"いてつく", "吹雪":"ふぶき",
+  "閉ざせ":"とざせ", "全て":"すべて", "疾風":"はやて", "駆け抜けろ":"かけぬけろ",
+  "雷鳴":"らいめい", "轟け":"とどろけ", "裂けろ":"さけろ",
+  "深淵":"しんえん", "貸せ":"かせ", "聖なる":"せいなる", "癒せ":"いやせ",
+  "大地":"だいち", "震えろ":"ふるえろ", "砕け":"くだけ",
+  "星屑":"ほしくず", "降り注げ":"ふりそそげ",
+  // 基礎まわり
+  "吹き荒れろ":"ふきあれろ", "飲み込め":"のみこめ", "呑み込め":"のみこめ",
+  "灯れ":"ともれ", "点れ":"ともれ", "燈れ":"ともれ",
+  "落ちろ":"おちろ", "放て":"はなて", "守れ":"まもれ", "出でし":"いでし",
+  // 単字（長い語より後に当たるよう、置換は長い順に行う）
+  "我が":"わが", "我":"われ", "私":"わたし",
+  "意志":"いし", "意思":"いし", "医師":"いし", "石":"いし",
+  "氷":"こおり", "刃":"やいば", "風":"かぜ", "光":"ひかり", "壁":"かべ",
+  "雷":"かみなり", "闇":"やみ", "炎":"ほのお", "矢":"や", "敵":"てき",
+  "力":"ちから", "傷":"きず", "雨":"あめ", "星":"ほし", "時":"とき",
+  "竜":"りゅう", "龍":"りゅう", "天":"てん", "声":"こえ", "応え":"こたえ",
+  "者":"もの", "名":"な", "無":"む", "火":"ひ", "日":"ひ",
+};
+// 長い語から順に当てないと「我が」が「我」に食われる
+const KANA_RE = new RegExp(
+  Object.keys(KANA_MAP).sort((a,b)=>b.length-a.length)
+    .map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"), "g");
+
+function kana(s){
+  if(!s) return "";
+  return norm(String(s).replace(KANA_RE, m => KANA_MAP[m]));
+}
 function lev(a,b){
   const m=a.length, n=b.length;
   if(!m) return n; if(!n) return m;
@@ -362,15 +420,31 @@ function lev(a,b){
   }
   return prev[n];
 }
+// 「えーっと」など余計な語が前後に混ざっても損をしないよう、
+// 呪文と同じ長さの窓をずらして一番合う位置で採点する
 function simOne(a,b){
   a=norm(a); b=norm(b);
   if(!a || !b) return 0;
-  return 1 - lev(a,b)/Math.max(a.length,b.length);
+  if(a.length <= b.length * 1.25) return 1 - lev(a,b)/Math.max(a.length,b.length);
+  let best = 0;
+  for(let i=0; i + b.length <= a.length; i++){
+    const s = 1 - lev(a.substr(i, b.length), b)/b.length;
+    if(s > best) best = s;
+    if(best >= 0.99) break;
+  }
+  return best;
 }
-// 表記・読み・ゆれ候補のうち一番マシなスコアを採用
+// 表記・読み・ゆれ候補それぞれについて、文字のまま／読みに揃えて の両方で比べ、
+// 一番マシなスコアを採用する
 function accuracy(heard, spell){
-  const cands = [spell.text, spell.yomi, ...(spell.alt||[])];
-  return cands.reduce((best,c)=>Math.max(best, simOne(heard,c)), 0);
+  const cands = [spell.text, spell.read, ...(spell.alt||[])];
+  const hk = kana(heard);
+  let best = 0;
+  for(const c of cands){
+    best = Math.max(best, simOne(heard, c), simOne(hk, kana(c)));
+    if(best >= 0.995) break;
+  }
+  return best;
 }
 
 /* =========================================================
@@ -487,6 +561,7 @@ function showPick(){
         <span class="sp-dmg">最大 ${RANK_DMG[s.r]} ダメージ</span>
       </div>
       <div class="sp-text">${s.text}</div>
+      <div class="sp-read">${s.read}</div>
     </button>`;
   });
   if(!G.typing && SR){
@@ -499,7 +574,7 @@ function toTyping(){ G.typing = true; logLine("⌨️ タイピングモード�
 
 /* ---- 詠唱画面 ---- */
 let rec = null, tickTimer = null, startedAt = 0, finalText = "", settled = false;
-let forceStop = false, restarts = 0;
+let forceStop = false, restarts = 0, committedText = "";
 
 // iOS の Safari は continuous 認識をまともに扱えず、一区切りごとに勝手に終わる。
 // 判定はこちらで区切るので、端末側の都合で切れたら黙って録り直す。
@@ -522,6 +597,7 @@ function chooseSpell(i){
     <div id="chantBox">
       <div class="chant-label">${G.typing ? "この呪文を打ち込め" : "この呪文を声に出して唱えろ"}</div>
       <div class="chant-text">${s.text}</div>
+      <div class="chant-read">${s.read}</div>
       <div class="timer"><i id="tbar"></i></div>
       ${G.typing ? `
         <input id="typeInput" type="text" placeholder="呪文を入力…" autocomplete="off" autocapitalize="off">
@@ -538,6 +614,7 @@ function chooseSpell(i){
   forceStop = false;
   restarts = 0;
   finalText = "";
+  committedText = "";
 
   // タイマーバー
   clearInterval(tickTimer);
@@ -572,9 +649,12 @@ function startListen(){
   const orb = $("orb");
   if(orb) orb.classList.add("listening");
 
+  // Android の Chrome は「確定済みの文の一覧」を毎回まるごと送り直してくる。
+  // 差分だけ足していくと同じ文が何度も積み上がって別物になるので、
+  // 毎回 e.results から全文を組み直す（足し算しない）。
   rec.onresult = e => {
-    let interim = "";
-    for(let i=e.resultIndex; i<e.results.length; i++){
+    let fin = "", interim = "";
+    for(let i=0; i<e.results.length; i++){
       const r = e.results[i];
       if(r.isFinal){
         // 候補の中から呪文に一番近いものを採用（認識ゆれの救済）
@@ -583,15 +663,16 @@ function startListen(){
           const sc = accuracy(r[a].transcript, G._spell);
           if(sc > bestS){ bestS = sc; best = r[a].transcript; }
         }
-        finalText += best;
+        fin += best;
       }else{
         interim += r[0].transcript;
       }
     }
+    finalText = committedText + fin;
     const h = $("heard");
     if(h) h.textContent = finalText + interim;
     // 十分な精度に達したら即確定（速さが得点になる）
-    if(accuracy(finalText + interim, G._spell) >= 0.93) stopChant();
+    if(accuracy(finalText + interim, G._spell) >= 0.92) stopChant();
   };
   rec.onerror = ev => {
     if(ev.error === "not-allowed" || ev.error === "service-not-allowed"){
@@ -605,9 +686,10 @@ function startListen(){
   rec.onend = () => {
     if(settled) return;
     const elapsed = (performance.now() - startedAt)/1000;
-    const enough  = accuracy(finalText, G._spell) >= 0.93;
+    const enough  = accuracy(finalText, G._spell) >= 0.92;
     if(!forceStop && !enough && restarts < 5 && elapsed < G._limit - 0.4){
       restarts++;
+      committedText = finalText;   // ここまでを確定させて、次の録音は新しい一覧で受ける
       try{ rec.start(); return; }catch(e){}
     }
     settle();
@@ -650,18 +732,18 @@ function settle(){
 
   // 速度ボーナス：想定より速ければ最大 ×1.35
   let speed = 1;
-  if(acc >= 0.6 && !G.typing){
+  if(acc >= 0.5 && !G.typing){
     speed = Math.max(0.85, Math.min(1.35, (G._par * 1.9) / Math.max(elapsed, .4)));
   }
 
   let verdict, cls, dmg, selfDmg = 0;
-  if(acc >= 0.95){
+  if(acc >= 0.92){
     verdict = "会心の詠唱"; cls = "v-crit";
     dmg = base * 1.5 * speed; G.stats.crit++; SFX.crit();
-  }else if(acc >= 0.8){
+  }else if(acc >= 0.75){
     verdict = "詠唱成功"; cls = "v-ok";
     dmg = base * (0.75 + acc*0.35) * speed; SFX.hit();
-  }else if(acc >= 0.55){
+  }else if(acc >= 0.50){
     verdict = "不完全な詠唱"; cls = "v-weak";
     dmg = base * 0.45 * speed; SFX.weak();
   }else{
