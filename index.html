@@ -498,7 +498,13 @@ function showPick(){
 function toTyping(){ G.typing = true; logLine("⌨️ タイピングモードに切り替えた"); showPick(); }
 
 /* ---- 詠唱画面 ---- */
-let rec = null, chantTimer = null, tickTimer = null, startedAt = 0, finalText = "", settled = false;
+let rec = null, tickTimer = null, startedAt = 0, finalText = "", settled = false;
+let forceStop = false, restarts = 0;
+
+// iOS の Safari は continuous 認識をまともに扱えず、一区切りごとに勝手に終わる。
+// 判定はこちらで区切るので、端末側の都合で切れたら黙って録り直す。
+const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent)
+            || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 function chooseSpell(i){
   if(G.busy) return;
@@ -529,6 +535,8 @@ function chooseSpell(i){
 
   startedAt = performance.now();
   settled = false;
+  forceStop = false;
+  restarts = 0;
   finalText = "";
 
   // タイマーバー
@@ -558,7 +566,7 @@ function startListen(){
   }
   rec.lang = "ja-JP";
   rec.interimResults = true;
-  rec.continuous = true;
+  rec.continuous = !IS_IOS;
   rec.maxAlternatives = 4;
 
   const orb = $("orb");
@@ -593,13 +601,24 @@ function startListen(){
       showPick();
     }
   };
-  rec.onend = () => { if(!settled) settle(); };
+  // 端末の都合で途中で切れたら、制限時間内なら黙って録り直す
+  rec.onend = () => {
+    if(settled) return;
+    const elapsed = (performance.now() - startedAt)/1000;
+    const enough  = accuracy(finalText, G._spell) >= 0.93;
+    if(!forceStop && !enough && restarts < 5 && elapsed < G._limit - 0.4){
+      restarts++;
+      try{ rec.start(); return; }catch(e){}
+    }
+    settle();
+  };
 
   try{ rec.start(); }catch(e){}
 }
 
 function stopChant(){
   if(settled) return;
+  forceStop = true;
   if(rec){ try{ rec.stop(); }catch(e){} }
   else settle();
 }
