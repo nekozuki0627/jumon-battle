@@ -195,6 +195,63 @@ h1,h2,h3{margin:0}
 .dots>i:nth-child(3){animation-delay:.36s}
 @keyframes dots{0%,100%{opacity:.22}50%{opacity:1}}
 
+/* ---- 呪文づくり ---- */
+.num-row{display:flex;gap:8px}
+.num-btn{
+  flex:1;padding:12px 0;border-radius:10px;font-size:16px;font-weight:800;font-family:inherit;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--text);cursor:pointer;
+}
+.num-btn.on{background:linear-gradient(180deg,rgba(232,196,106,.9),rgba(180,140,60,.85));color:#2a1f06}
+.name-in{
+  width:100%;padding:10px 12px;margin-bottom:7px;border-radius:9px;font-size:15px;font-family:inherit;
+  background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--text);
+}
+.topic-jp{
+  font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+  font-size:25px;line-height:1.5;letter-spacing:.05em;color:var(--gold);
+  padding:14px 4px 8px;text-shadow:0 0 26px rgba(232,196,106,.4);
+}
+.topic-note{font-size:12.5px;color:var(--text-dim);line-height:1.7}
+.pass-name{
+  font-family:"Yu Mincho",serif;font-size:30px;letter-spacing:.1em;
+  padding:12px 0 6px;color:var(--text);
+}
+.craft-line{
+  font-family:"Yu Mincho","Hiragino Mincho ProN",serif;
+  font-size:19px;line-height:1.6;letter-spacing:.03em;text-align:center;
+  min-height:62px;display:flex;align-items:center;justify-content:center;
+  padding:8px;border-radius:10px;background:rgba(0,0,0,.26);
+  border:1px solid rgba(232,196,106,.18);
+}
+.craft-meta{font-size:11.5px;color:var(--text-dim);text-align:right;margin:6px 2px 10px}
+.hand{display:flex;flex-direction:column;gap:7px}
+.wcard{
+  position:relative;display:flex;align-items:center;gap:9px;
+  padding:11px 13px;border-radius:10px;text-align:left;cursor:pointer;
+  background:linear-gradient(135deg,rgba(155,124,245,.14),rgba(40,28,90,.5));
+  border:1px solid var(--line);color:var(--text);font-family:inherit;
+}
+.wcard.picked{border-color:var(--gold);background:linear-gradient(135deg,rgba(232,196,106,.22),rgba(90,60,20,.4))}
+.card-k{font-size:10.5px;font-weight:800;padding:2.5px 7px;border-radius:99px;flex:none}
+.k呼{background:rgba(110,201,240,.18);color:var(--ice);border:1px solid rgba(110,201,240,.4)}
+.k飾{background:rgba(155,124,245,.2);color:#b9a3ff;border:1px solid rgba(155,124,245,.45)}
+.k命{background:rgba(255,122,82,.18);color:var(--ember);border:1px solid rgba(255,122,82,.45)}
+.card-t{flex:1;font-size:15px;font-family:"Yu Mincho",serif;line-height:1.4}
+.card-p{font-size:9px;color:var(--gold-dim);letter-spacing:.1em;flex:none}
+.card-no{
+  position:absolute;right:-6px;top:-6px;width:21px;height:21px;border-radius:50%;
+  background:var(--gold);color:#2a1f06;font-size:12px;font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+}
+.res-row{background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.res-row.top{border-color:var(--gold);background:rgba(232,196,106,.1)}
+.res-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.res-name{font-size:14px;font-weight:700}
+.res-total{font-size:20px;font-weight:900;color:var(--gold)}
+.res-spell{font-family:"Yu Mincho",serif;font-size:14px;line-height:1.5;margin-top:5px;color:var(--text)}
+.res-break{font-size:11px;color:var(--text-dim);margin-top:5px}
+.final-list{margin-bottom:20px;text-align:left}
+
 /* ---- 判定結果 ---- */
 .verdict{text-align:center;padding:6px 0 2px}
 .v-title{font-size:27px;font-weight:800;letter-spacing:.12em;margin-bottom:4px}
@@ -264,6 +321,10 @@ h1,h2,h3{margin:0}
       ひとり修行
       <div class="mode-desc">魔物3体と連戦。ギルドの試練に挑む</div>
     </button>
+    <button class="btn" onclick="craftSetup()">
+      呪文づくり
+      <div class="mode-desc">2〜6人。手札で自分だけの呪文を組んで唱え、投票で競う</div>
+    </button>
     <button class="btn" onclick="startGame('duel')">
       ふたり対戦
       <div class="mode-desc">1台を交代で回す。先に相手のHPを削れ</div>
@@ -284,7 +345,7 @@ h1,h2,h3{margin:0}
 
 <!-- ============ バトル ============ -->
 <section id="battle" class="hide">
-  <div class="fighters">
+  <div class="fighters" id="fighters">
     <div class="fighter" id="fL">
       <div class="f-top"><span class="f-art" id="eL"></span><span class="f-hp"><span id="hpLv">100</span>/<span id="hpLm">100</span></span></div>
       <div class="f-name" id="nL">あなた</div>
@@ -392,6 +453,68 @@ const SPELLS = [
         read:"ひかりとやみのさかいにて、われはことわりをかきかえる", alt:[]},
   {r:3, text:"星々の名を呼ぶ。来たれ、天の火よ",
         read:"ほしぼしのなをよぶ。きたれ、てんのひよ", alt:[]},
+];
+
+/* =========================================================
+   呪文づくり用のカード
+   t=表記 / r=読み / p=威力(1〜3) / k=種別
+   威力の高い札ほど真面目で、低い札ほどふざけている。
+   「強いけど笑いは取れない」「弱いけど票は取れる」の板挟みが狙い。
+   ========================================================= */
+const CARDS = [
+  // ── 呼びかけ ──
+  {k:"呼", p:3, t:"闇より出でし者よ",     r:"やみよりいでしものよ"},
+  {k:"呼", p:3, t:"紅蓮の炎よ",           r:"ぐれんのほのおよ"},
+  {k:"呼", p:3, t:"凍てつく吹雪よ",       r:"いてつくふぶきよ"},
+  {k:"呼", p:3, t:"万象を統べる光よ",     r:"ばんしょうをすべるひかりよ"},
+  {k:"呼", p:2, t:"星屑の雨よ",           r:"ほしくずのあめよ"},
+  {k:"呼", p:2, t:"名もなき風よ",         r:"なもなきかぜよ"},
+  {k:"呼", p:2, t:"眠れる大地よ",         r:"ねむれるだいちよ"},
+  {k:"呼", p:1, t:"ぬるいコーヒーよ",     r:"ぬるいこーひーよ"},
+  {k:"呼", p:1, t:"昨日の私よ",           r:"きのうのわたしよ"},
+  {k:"呼", p:1, t:"冷蔵庫の奥の何かよ",   r:"れいぞうこのおくのなにかよ"},
+  {k:"呼", p:1, t:"締切よ",               r:"しめきりよ"},
+  {k:"呼", p:1, t:"平日の朝よ",           r:"へいじつのあさよ"},
+
+  // ── 飾り ──
+  {k:"飾", p:3, t:"万象を貫き",           r:"ばんしょうをつらぬき"},
+  {k:"飾", p:3, t:"静寂を切り裂き",       r:"せいじゃくをきりさき"},
+  {k:"飾", p:3, t:"全てを飲み込み",       r:"すべてをのみこみ"},
+  {k:"飾", p:3, t:"時を止めて",           r:"ときをとめて"},
+  {k:"飾", p:2, t:"天地を揺らし",         r:"てんちをゆらし"},
+  {k:"飾", p:2, t:"三日月の名において",   r:"みかづきのなにおいて"},
+  {k:"飾", p:2, t:"誰にも気づかれず",     r:"だれにもきづかれず"},
+  {k:"飾", p:1, t:"そっと寄り添い",       r:"そっとよりそい"},
+  {k:"飾", p:1, t:"なんかいい感じに",     r:"なんかいいかんじに"},
+  {k:"飾", p:1, t:"恐る恐る",             r:"おそるおそる"},
+  {k:"飾", p:1, t:"割と本気で",           r:"わりとほんきで"},
+
+  // ── 命令 ──
+  {k:"命", p:3, t:"我が敵を焼き払え",     r:"わがてきをやきはらえ"},
+  {k:"命", p:3, t:"世界を凍てつかせろ",   r:"せかいをいてつかせろ"},
+  {k:"命", p:3, t:"無に還れ",             r:"むにかえれ"},
+  {k:"命", p:3, t:"全てを断ち切れ",       r:"すべてをたちきれ"},
+  {k:"命", p:2, t:"跪け",                 r:"ひざまずけ"},
+  {k:"命", p:2, t:"目を覚ませ",           r:"めをさませ"},
+  {k:"命", p:2, t:"この夜を明かせ",       r:"このよるをあかせ"},
+  {k:"命", p:1, t:"ちょっと反省しろ",     r:"ちょっとはんせいしろ"},
+  {k:"命", p:1, t:"今日だけは休め",       r:"きょうだけはやすめ"},
+  {k:"命", p:1, t:"明日も頑張れ",         r:"あしたもがんばれ"},
+  {k:"命", p:1, t:"そこそこ幸せになれ",   r:"そこそこしあわせになれ"},
+  {k:"命", p:1, t:"洗い物をしろ",         r:"あらいものをしろ"},
+];
+
+const TOPICS = [
+  "いちばん かっこいい呪文",
+  "敵を一撃で倒す呪文",
+  "相手を照れさせる呪文",
+  "いちばん ダサい呪文",
+  "疲れた人を癒す呪文",
+  "絶対に笑わせる呪文",
+  "朝起きられない人にかける呪文",
+  "世界を救う呪文",
+  "なぜか泣ける呪文",
+  "二度と使いたくない呪文",
 ];
 
 /* =========================================================
@@ -563,6 +686,18 @@ const KANA_MAP = {
   "水":"みず", "土":"つち", "影":"かげ", "霧":"きり", "月":"つき",
   "根":"ね", "前":"まえ", "立つ":"たつ", "焼け":"やけ", "降れ":"ふれ",
   "千":"せん", "目":"め", "開け":"あけ",
+  // 呪文づくりのカード用
+  "冷蔵庫":"れいぞうこ", "そこそこ幸せ":"そこそこしあわせ", "洗い物":"あらいもの",
+  "気づかれず":"きづかれず", "切り裂き":"きりさき", "飲み込み":"のみこみ",
+  "凍てつかせろ":"いてつかせろ", "断ち切れ":"たちきれ", "目を覚ませ":"めをさませ",
+  "今日だけ":"きょうだけ", "頑張れ":"がんばれ", "反省":"はんせい",
+  "三日月":"みかづき", "統べる":"すべる", "名もなき":"なもなき", "貫き":"つらぬき",
+  "天地":"てんち", "揺らし":"ゆらし", "寄り添い":"よりそい", "恐る恐る":"おそるおそる",
+  "割と本気":"わりとほんき", "平日":"へいじつ", "締切":"しめきり", "何か":"なにか",
+  "跪け":"ひざまずけ", "還れ":"かえれ", "休め":"やすめ", "明かせ":"あかせ",
+  "感じ":"かんじ", "昨日":"きのう", "今日":"きょう", "明日":"あした",
+  "幸せ":"しあわせ", "覚ませ":"さませ", "誰":"だれ", "奥":"おく", "朝":"あさ",
+  "夜":"よる", "風":"かぜ",
   // 単字（長い語より後に当たるよう、置換は長い順に行う）
   "我が":"わが", "我":"われ", "私":"わたし",
   "意志":"いし", "意思":"いし", "医師":"いし", "石":"いし",
@@ -900,8 +1035,13 @@ const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent)
 function chooseSpell(i){
   if(G.busy) return;
   G.busy = true;
+  startChant(G._cands[i]);
+}
+
+// 呪文ひとつを唱えさせる。呪文づくりモードからも同じものを使う。
+function startChant(s){
   stopSpeech();   // 敵の声が残っているとマイクがそれを拾ってしまう
-  const s = G._cands[i];
+  $("stage").onclick = null;
   G._spell = s;
   // 想定詠唱秒数（文字数ベース）＋余裕
   const chars = norm(s.text).length;
@@ -1055,6 +1195,12 @@ function settle(){
   const s = G._spell;
   const heard = bestHeard();
   const acc = heard.acc;
+
+  // 呪文づくりモードは戦闘ではないので、結果だけ渡して抜ける
+  if(G.chantDone){
+    const cb = G.chantDone; G.chantDone = null;
+    return cb({acc, elapsed, heard: heard.text, spell: s});
+  }
   const base = {1:18, 2:34, 3:58}[s.r];
 
   // 速度ボーナス：想定より速ければ最大 ×1.35
@@ -1237,6 +1383,218 @@ function tryPass(){
   el.addEventListener("keydown", e=>{ if(e.key==="Enter") tryPass(); });
   setTimeout(()=>el.focus(), 200);
 })();
+
+/* =========================================================
+   呪文づくりモード（1台を回して遊ぶ）
+   手札から3枚選んで自分だけの呪文を組み、声に出して唱え、
+   最後にみんなで投票する。
+   ========================================================= */
+const C = { players:[], round:0, rounds:3, topic:"", turn:0, entries:[], voter:0, hand:[], chosen:[] };
+
+function craftSetup(){
+  $("title").classList.add("hide");
+  $("battle").classList.remove("hide");
+  $("fighters").classList.add("hide");
+  $("log").innerHTML = "";
+  const n = C.players.length || 3;
+  $("stage").innerHTML = `
+    <div class="sect-label">何人で遊ぶ？</div>
+    <div class="num-row">${[2,3,4,5,6].map(i=>
+      `<button class="num-btn ${i===n?'on':''}" onclick="craftSetPlayers(${i})">${i}</button>`).join("")}</div>
+    <div class="sect-label" style="margin-top:16px">名前（そのままでもOK）</div>
+    <div id="nameList"></div>
+    <button class="btn gold" style="margin-top:12px" onclick="craftBegin()">はじめる</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="location.reload()">もどる</button>`;
+  craftSetPlayers(n);
+}
+function craftSetPlayers(n){
+  const old = C.players.map(p=>p.name);
+  C.players = Array.from({length:n}, (_,i)=>({ name: old[i] || `術士 ${i+1}`, score:0 }));
+  document.querySelectorAll(".num-btn").forEach(b=>b.classList.toggle("on", +b.textContent===n));
+  $("nameList").innerHTML = C.players.map((p,i)=>
+    `<input class="name-in" value="${escapeHtml(p.name)}" maxlength="8"
+       oninput="C.players[${i}].name=this.value.slice(0,8)">`).join("");
+}
+function craftBegin(){
+  C.players.forEach((p,i)=>{ if(!p.name.trim()) p.name = `術士 ${i+1}`; p.score = 0; });
+  C.round = 0;
+  craftRound();
+}
+
+function craftRound(){
+  C.round++;
+  C.topic = pick(TOPICS.filter(t => t !== C.topic));
+  C.turn = 0;
+  C.entries = [];
+  C.voter = 0;
+  $("stage").onclick = null;
+  $("stage").innerHTML = `
+    <div class="verdict">
+      <div class="sect-label">第 ${C.round} 幕 ／ 全 ${C.rounds} 幕</div>
+      <div class="topic-jp">${C.topic}</div>
+      <div class="topic-note">手札から3枚選んで呪文を組み、声に出して唱えよ</div>
+    </div>
+    <button class="btn gold" style="margin-top:18px" onclick="craftPass()">はじめる</button>`;
+}
+
+// 手札を人に見られないよう、渡すタイミングで一枚挟む
+function craftPass(){
+  const p = C.players[C.turn];
+  $("stage").innerHTML = `
+    <div class="verdict">
+      <div class="sect-label">画面を渡して</div>
+      <div class="pass-name">${escapeHtml(p.name)}</div>
+      <div class="topic-note">お題：${C.topic}</div>
+    </div>
+    <button class="btn gold" style="margin-top:18px" onclick="craftHand()">${escapeHtml(p.name)}です</button>`;
+}
+
+function craftHand(){
+  // 呼びかけ・飾り・命令が必ず混ざるように配る
+  const byKind = k => shuffle(CARDS.filter(c=>c.k===k));
+  C.hand = shuffle([...byKind("呼").slice(0,3), ...byKind("飾").slice(0,2), ...byKind("命").slice(0,3)]);
+  C.chosen = [];
+  craftRenderHand();
+}
+function shuffle(a){
+  a = a.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function craftRenderHand(){
+  const p = C.players[C.turn];
+  const line = C.chosen.map(i=>C.hand[i].t).join("、");
+  const power = C.chosen.reduce((s,i)=>s+C.hand[i].p, 0);
+  $("stage").innerHTML = `
+    <div class="sect-label">${escapeHtml(p.name)}／お題：${C.topic}</div>
+    <div class="craft-line">${line ? line + "！" : "<span style='opacity:.4'>札を選んで呪文を組め</span>"}</div>
+    <div class="craft-meta">${C.chosen.length}/3枚　威力 ${power}</div>
+    <div class="hand">${C.hand.map((c,i)=>{
+      const at = C.chosen.indexOf(i);
+      return `<button class="wcard ${at>=0?'picked':''}" onclick="craftPick(${i})">
+        <span class="card-k k${c.k}">${c.k}</span>
+        <span class="card-t">${c.t}</span>
+        <span class="card-p">${"◆".repeat(c.p)}</span>
+        ${at>=0?`<span class="card-no">${at+1}</span>`:""}
+      </button>`;}).join("")}</div>
+    <div class="opt-row">
+      <button class="btn ghost" onclick="C.chosen=[];craftRenderHand()">選び直す</button>
+      <button class="btn gold" ${C.chosen.length===3?"":"disabled"} onclick="craftChant()">唱える</button>
+    </div>`;
+}
+function craftPick(i){
+  const at = C.chosen.indexOf(i);
+  if(at >= 0) C.chosen.splice(at, 1);
+  else if(C.chosen.length < 3) C.chosen.push(i);
+  craftRenderHand();
+}
+
+function craftChant(){
+  if(C.chosen.length !== 3) return;
+  const cards = C.chosen.map(i=>C.hand[i]);
+  const spell = {
+    text: cards.map(c=>c.t).join("、") + "！",
+    read: cards.map(c=>c.r).join("、"),
+    alt: [],
+  };
+  const power = cards.reduce((s,c)=>s+c.p, 0);
+  G.chantDone = res => craftAfterChant(res, spell, power);
+  startChant(spell);
+}
+
+function craftAfterChant(res, spell, power){
+  const acc = res.acc;
+  const chant = acc >= 0.92 ? 30 : acc >= 0.75 ? 20 : acc >= 0.5 ? 10 : 0;
+  const label = acc >= 0.92 ? "完璧な詠唱" : acc >= 0.75 ? "よい詠唱" : acc >= 0.5 ? "たどたどしい詠唱" : "噛んだ";
+  const cls   = acc >= 0.92 ? "v-crit" : acc >= 0.75 ? "v-ok" : acc >= 0.5 ? "v-weak" : "v-fail";
+  C.entries.push({ pi:C.turn, text:spell.text, chant, power, votes:0 });
+
+  $("stage").innerHTML = `
+    <div class="verdict">
+      <div class="v-title ${cls}">${label}</div>
+      <div class="craft-line" style="margin:10px 0">${spell.text}</div>
+      <div class="acc-row"><span>詠唱</span><span style="flex:1"></span><span class="mono-num">${chant} 点（精度 ${Math.round(acc*100)}%）</span></div>
+      <div class="acc-row"><span>呪文の威力</span><span style="flex:1"></span><span class="mono-num">${power*3} 点</span></div>
+      <div class="v-heard">聞こえた言葉：<b>${escapeHtml(res.heard.trim() || "（聞き取れなかった）")}</b></div>
+    </div>
+    <button class="btn gold" style="margin-top:16px" onclick="craftNextTurn()">つぎの人へ</button>`;
+}
+
+function craftNextTurn(){
+  C.turn++;
+  if(C.turn < C.players.length) return craftPass();
+  C.voter = 0;
+  craftVotePass();
+}
+
+function craftVotePass(){
+  const p = C.players[C.voter];
+  $("stage").innerHTML = `
+    <div class="verdict">
+      <div class="sect-label">投票 ── 画面を渡して</div>
+      <div class="pass-name">${escapeHtml(p.name)}</div>
+      <div class="topic-note">お題：${C.topic}</div>
+    </div>
+    <button class="btn gold" style="margin-top:18px" onclick="craftVote()">${escapeHtml(p.name)}です</button>`;
+}
+function craftVote(){
+  const p = C.players[C.voter];
+  $("stage").innerHTML = `
+    <div class="sect-label">${escapeHtml(p.name)}／「${C.topic}」に一番合っていたのは？</div>
+    ${C.entries.map((e,i)=>`
+      <button class="spell-pick" ${e.pi===C.voter?"disabled style='opacity:.35'":""} onclick="craftCastVote(${i})">
+        <div class="sp-head"><span class="sp-rank r2">${escapeHtml(C.players[e.pi].name)}</span>
+        ${e.pi===C.voter?'<span class="sp-dmg">自分には入れられない</span>':''}</div>
+        <div class="sp-text">${e.text}</div>
+      </button>`).join("")}`;
+}
+function craftCastVote(i){
+  if(C.entries[i].pi === C.voter) return;
+  C.entries[i].votes++;
+  beep(760,.12);
+  C.voter++;
+  if(C.voter < C.players.length) return craftVotePass();
+  craftRoundResult();
+}
+
+function craftRoundResult(){
+  C.entries.forEach(e=>{
+    e.total = e.chant + e.power*3 + e.votes*25;
+    C.players[e.pi].score += e.total;
+  });
+  const ranked = C.entries.slice().sort((a,b)=>b.total-a.total);
+  $("stage").innerHTML = `
+    <div class="sect-label">第 ${C.round} 幕の結果 ── ${C.topic}</div>
+    ${ranked.map((e,i)=>`
+      <div class="res-row ${i===0?'top':''}">
+        <div class="res-head">
+          <span class="res-name">${i===0?"👑 ":""}${escapeHtml(C.players[e.pi].name)}</span>
+          <span class="res-total mono-num">${e.total}</span>
+        </div>
+        <div class="res-spell">${e.text}</div>
+        <div class="res-break">詠唱 ${e.chant}　威力 ${e.power*3}　票 ${e.votes} × 25</div>
+      </div>`).join("")}
+    <button class="btn gold" style="margin-top:14px" onclick="${C.round < C.rounds ? "craftRound()" : "craftFinal()"}">
+      ${C.round < C.rounds ? "つぎの幕へ" : "総合結果"}</button>`;
+}
+
+function craftFinal(){
+  const ranked = C.players.slice().sort((a,b)=>b.score-a.score);
+  $("battle").classList.add("hide");
+  $("over").classList.remove("hide");
+  $("ovEmoji").textContent = "👑";
+  $("ovTitle").textContent = "大詠唱者";
+  $("ovSub").innerHTML = `${escapeHtml(ranked[0].name)} が最も心を動かした`;
+  const slot = $("over").querySelector(".stats") || $("over").querySelector(".final-list");
+  slot.outerHTML = `
+    <div class="final-list">${ranked.map((p,i)=>`
+      <div class="res-row ${i===0?'top':''}">
+        <div class="res-head">
+          <span class="res-name">${["🥇","🥈","🥉"][i] || "　"} ${escapeHtml(p.name)}</span>
+          <span class="res-total mono-num">${p.score}</span>
+        </div>
+      </div>`).join("")}</div>`;
+}
 
 function gameOver(win, msg){
   stopSpeech();
